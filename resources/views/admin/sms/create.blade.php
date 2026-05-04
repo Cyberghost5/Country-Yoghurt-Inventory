@@ -28,7 +28,7 @@
             <p>Send a broadcast message to selected users.</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('admin.sms.index') }}" class="sec-btn">
+            <a href="{{ route('admin.sms.index') }}" class="ghost-btn">
               <i class="bi bi-arrow-left"></i> Back to History
             </a>
           </div>

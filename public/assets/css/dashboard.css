@@ -653,6 +653,7 @@ body {
   padding: 14px;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   cursor: pointer;
+  margin-bottom: 20px;
 }
 
 .stat-card:hover {
@@ -2712,7 +2713,7 @@ tbody td {
   transition: background 0.12s, color 0.12s;
 }
 .sms-rcpt-filter-btn:hover { background: var(--hover-bg, #f3f4f6); color: var(--text); }
-.sms-rcpt-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.sms-rcpt-filter-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
 
 /* ── Utility colour helpers ──────────────────────────────────────── */
 .text-success-muted { color: #15803d; }

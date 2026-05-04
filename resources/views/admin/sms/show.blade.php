@@ -37,10 +37,10 @@
             <p>Sent {{ $smsLog->created_at->format('d M Y, g:ia') }}</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('admin.sms.index') }}" class="sec-btn">
+            <a href="{{ route('admin.sms.index') }}" class="ghost-btn">
               <i class="bi bi-arrow-left"></i> Back
             </a>
-            <button onclick="window.print()" class="sec-btn">
+            <button onclick="window.print()" class="ghost-btn">
               <i class="bi bi-printer"></i> Print
             </button>
           </div>

@@ -200,6 +200,11 @@ function renderTransactions(rows) {
 }
 
 function renderModule(moduleKey) {
+  // Guard: if the dashboard DOM isn't present (e.g. reports page), do nothing.
+  if (!pageTitle || !kpiGrid || !transactionTable) {
+    return;
+  }
+
   const allowedModules = Array.isArray(window.CY_ALLOWED_MODULES)
     ? window.CY_ALLOWED_MODULES
     : [];

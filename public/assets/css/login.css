@@ -1,0 +1,480 @@
+/* -- Reset -- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+  background: #fcf8f2;
+}
+
+/* -- Shell -- */
+.login-shell {
+  display: grid;
+  grid-template-columns: 53% 47%;
+  min-height: 100vh;
+}
+
+/* -------------------------------
+   LEFT PANEL
+------------------------------- */
+
+.lp-left {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 48px 44px;
+}
+
+/* ── Slider lives inside lp-left ── */
+.lp-slider {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.lp-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.lp-slide-active {
+  opacity: 1;
+}
+
+/* Dark overlay so white text stays readable */
+.lp-slider-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(14, 20, 42, 0.78) 0%,
+    rgba(20, 27, 63, 0.7) 60%,
+    rgba(20, 10, 30, 0.82) 100%
+  );
+}
+
+/* Slide dots */
+.lp-slider-dots {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.lp-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.35s, transform 0.35s;
+}
+
+.lp-dot-active {
+  background: #ffd900;
+  transform: scale(1.3);
+}
+
+/* All left-panel content must sit above the slider */
+.lp-brand,
+.lp-badge,
+.lp-hero,
+.lp-stats {
+  position: relative;
+  z-index: 1;
+}
+
+/* Brand */
+.lp-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+}
+
+.lp-brand-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #ffd900;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.lp-brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.lp-brand h1 {
+  color: #f8f5ee;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.lp-brand p {
+  color: #b3a87a;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+/* Badge */
+.lp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(201, 153, 26, 0.45);
+  color: #ffd900;
+  font-size: 0.74rem;
+  padding: 7px 14px;
+  border-radius: 999px;
+  width: fit-content;
+  position: relative;
+}
+
+.lp-badge i {
+  color: #ffd900;
+  font-size: 0.78rem;
+}
+
+/* Hero */
+.lp-hero {
+  position: relative;
+}
+
+.lp-hero h2 {
+  font-size: clamp(2rem, 3.2vw, 2.8rem);
+  font-weight: 800;
+  color: #f8f5ee;
+  line-height: 1.22;
+  margin-bottom: 16px;
+}
+
+.lp-hero h2 span {
+  color: #ffd900;
+}
+
+.lp-hero p {
+  color: #b3a87a;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+/* Stats */
+.lp-stats {
+  display: flex;
+  gap: 32px;
+  position: relative;
+}
+
+.lp-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-stats strong {
+  color: #ffd900;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lp-stats span {
+  color: #7a9181;
+  font-size: 0.72rem;
+}
+
+/* -------------------------------
+   RIGHT PANEL
+------------------------------- */
+
+.lp-right {
+  background: #fffdfa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 36px;
+}
+
+.lp-form-wrap {
+  width: 100%;
+  max-width: 420px;
+}
+
+.lp-form-head {
+  margin-bottom: 28px;
+}
+
+.lp-form-head h2 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #1d086c;
+  margin: 0;
+}
+
+.lp-form-head p {
+  margin-top: 6px;
+  color: #b3a87a;
+  font-size: 0.83rem;
+}
+
+/* Error / Success */
+.lp-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdecea;
+  border: 1px solid #f5c0bc;
+  color: #b33a36;
+  font-size: 0.78rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.lp-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eaf6ee;
+  border: 1px solid #b2dfc0;
+  color: #246b3a;
+  font-size: 0.78rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #1d086c;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Form groups */
+.lp-form {
+  display: grid;
+  gap: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #2e342b;
+  margin-bottom: 7px;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1.5px solid #ddd7c8;
+  border-radius: 10px;
+  padding: 0 14px;
+  transition: border-color 0.18s;
+}
+
+.input-wrap:focus-within {
+  border-color: #1d086c;
+}
+
+.input-wrap > i {
+  color: #b0aa9a;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.input-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #2e342b;
+  padding: 13px 0;
+}
+
+.input-wrap input::placeholder {
+  color: #c8c2b5;
+}
+
+.input-wrap input:focus {
+  outline: none;
+}
+
+.pw-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #a8a398;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pw-toggle i {
+  font-size: 0.84rem;
+}
+
+/* Remember row */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 0.79rem;
+  color: #4f574c;
+  user-select: none;
+}
+
+.check-label input[type="checkbox"] {
+  display: none;
+}
+
+.custom-check {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #c0b9ac;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  transition: background 0.16s, border-color 0.16s;
+}
+
+.check-label input[type="checkbox"]:checked + .custom-check {
+  background: #1d086c;
+  border-color: #1d086c;
+}
+
+.check-label input[type="checkbox"]:checked + .custom-check::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+  display: block;
+}
+
+.forgot-link {
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: #1d086c;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Submit button */
+.btn-signin {
+  width: 100%;
+  padding: 15px;
+  background: #ffd900;
+  border: none;
+  border-radius: 12px;
+  color: #1d086c;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.btn-signin:hover {
+  background: #b38b16;
+}
+
+/* Footer note */
+.lp-footer-note {
+  text-align: center;
+  margin-top: 22px;
+  color: #b0aa9e;
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+
+/* -------------------------------
+   RESPONSIVE
+------------------------------- */
+@media (max-width: 900px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .lp-left {
+    padding: 30px 28px;
+    gap: 20px;
+  }
+
+  .lp-hero h2 {
+    font-size: 1.7rem;
+  }
+
+  .lp-stats {
+    gap: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .lp-right {
+    padding: 28px 16px;
+  }
+
+  .lp-form-wrap {
+    padding: 0;
+  }
+
+  .lp-form-head h2 {
+    font-size: 1.5rem;
+  }
+
+  .lp-hero {
+    display: none;
+  }
+}

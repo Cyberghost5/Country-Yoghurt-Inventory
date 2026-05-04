@@ -1,0 +1,171 @@
+{{--
+  Shared sidebar partial.
+  Requires: $user  (Illuminate\Foundation\Auth\User)
+  Active links are detected automatically from the current route.
+--}}
+<button class="sidebar-close" id="sidebarClose" aria-label="Close navigation">
+  <i class="bi bi-x-lg"></i>
+</button>
+
+<div class="brand-block">
+  <img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt logo"
+       style="height: 48px; width: 48px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);" />
+  <div>
+    <h1>Country Yoghurt</h1>
+    <p>Inventory System</p>
+  </div>
+</div>
+
+{{-- -- Main Menu ----------------------------------- --}}
+<p class="menu-label">Main Menu</p>
+<nav class="nav-links">
+  <a href="{{ route('dashboard') }}"
+     class="nav-link nav-link-anchor {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+    <i class="bi bi-grid-1x2 nav-icon"></i>Dashboard
+  </a>
+
+  @if (in_array($user->role, ['admin', 'staff'], true))
+    <a href="{{ route('admin.inventory.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
+      <i class="bi bi-box-seam nav-icon"></i>Inventory
+    </a>
+  @endif
+
+  <a href="{{ route('orders.index') }}"
+     class="nav-link nav-link-anchor {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+    <i class="bi bi-bag nav-icon"></i>Orders
+  </a>
+
+  @if (in_array($user->role, ['admin', 'staff'], true))
+    <a href="{{ route('deliveries.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
+      <i class="bi bi-truck nav-icon"></i>Deliveries
+    </a>
+  @endif
+
+  <a href="{{ route('payments.index') }}"
+     class="nav-link nav-link-anchor {{ request()->routeIs('payments.*') ? 'active' : '' }}">
+    <i class="bi bi-credit-card nav-icon"></i>Payments
+  </a>
+
+  <a href="{{ route('transactions.index') }}"
+     class="nav-link nav-link-anchor {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+    <i class="bi bi-clock-history nav-icon"></i>Transactions
+  </a>
+
+  @php $notifCount = auth()->user()?->unreadNotifications()->count() ?? 0; @endphp
+  <a href="{{ route('notifications.index') }}"
+     class="nav-link nav-link-anchor {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
+    <i class="bi bi-bell nav-icon"></i>Notifications
+    @if ($notifCount > 0)
+      <span class="notif-nav-badge">{{ $notifCount > 99 ? '99+' : $notifCount }}</span>
+    @endif
+  </a>
+</nav>
+
+{{-- -- People --------------------------------------- --}}
+@if (in_array($user->role, ['admin', 'staff'], true))
+  <p class="menu-label" style="margin-top: 18px;">People</p>
+  <nav class="nav-links">
+
+    @if ($user->role === 'admin')
+      @php $adminMenuActive = request()->routeIs('admin.admins.index') || request()->routeIs('users.create.admin'); @endphp
+      <button type="button"
+              class="nav-link nav-dropdown-toggle {{ $adminMenuActive ? 'active' : '' }}"
+              data-target="dd-admins"
+              aria-expanded="{{ $adminMenuActive ? 'true' : 'false' }}">
+        <i class="bi bi-shield nav-icon"></i>
+        Admins
+        <i class="bi bi-chevron-down nav-chevron"></i>
+      </button>
+      <div class="nav-dropdown {{ $adminMenuActive ? 'nav-dropdown-open' : '' }}" id="dd-admins">
+        <div>
+          <a href="{{ route('admin.admins.index') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.admins.index') ? 'active' : '' }}">
+            <i class="bi bi-shield nav-icon"></i>View Admins
+          </a>
+          <a href="{{ route('users.create.admin') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.admin') ? 'active' : '' }}">
+            <i class="bi bi-shield-plus nav-icon"></i>Add Admin
+          </a>
+        </div>
+      </div>
+
+      @php $staffActive = request()->routeIs('admin.staff.index') || request()->routeIs('users.create.staff'); @endphp
+      <button type="button"
+              class="nav-link nav-dropdown-toggle {{ $staffActive ? 'active' : '' }}"
+              data-target="dd-staff"
+              aria-expanded="{{ $staffActive ? 'true' : 'false' }}">
+        <i class="bi bi-people nav-icon"></i>
+        Staff
+        <i class="bi bi-chevron-down nav-chevron"></i>
+      </button>
+      <div class="nav-dropdown {{ $staffActive ? 'nav-dropdown-open' : '' }}" id="dd-staff">
+        <div>
+          <a href="{{ route('admin.staff.index') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.staff.index') ? 'active' : '' }}">
+            <i class="bi bi-people nav-icon"></i>View Staff
+          </a>
+          <a href="{{ route('users.create.staff') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.staff') ? 'active' : '' }}">
+            <i class="bi bi-person-plus nav-icon"></i>Add Staff
+          </a>
+        </div>
+      </div>
+    @endif
+
+    @php $custActive = request()->routeIs('admin.customers.index') || request()->routeIs('users.create.customer'); @endphp
+    <button type="button"
+            class="nav-link nav-dropdown-toggle {{ $custActive ? 'active' : '' }}"
+            data-target="dd-customers"
+            aria-expanded="{{ $custActive ? 'true' : 'false' }}">
+      <i class="bi bi-shop nav-icon"></i>
+      Customers
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="nav-dropdown {{ $custActive ? 'nav-dropdown-open' : '' }}" id="dd-customers">
+      <div>
+        @if ($user->role === 'admin')
+          <a href="{{ route('admin.customers.index') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.customers.index') ? 'active' : '' }}">
+            <i class="bi bi-shop nav-icon"></i>View Customers
+          </a>
+        @endif
+        <a href="{{ route('users.create.customer') }}"
+           class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.customer') ? 'active' : '' }}">
+          <i class="bi bi-person-plus nav-icon"></i>Add Customer
+        </a>
+      </div>
+    </div>
+
+  </nav>
+@endif
+
+{{-- -- Footer ---------------------------------------- --}}
+<div class="sidebar-footer">
+  <div class="user-avatar">
+    {{ strtoupper(substr($user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($user->name, ' ') ?: $user->name, 1, 1)) }}
+  </div>
+  <div class="user-meta">
+    <p>{{ $user->name }}</p>
+    <small>{{ ucfirst($user->role) }}</small>
+  </div>
+  <form method="POST" action="{{ route('logout') }}" class="logout-form">
+    @csrf
+    <button type="submit" class="logout-btn" title="Sign out">
+      <i class="bi bi-box-arrow-right"></i>
+    </button>
+  </form>
+</div>
+
+<script>
+  document.querySelectorAll('.nav-dropdown-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var targetId = this.getAttribute('data-target');
+      var panel    = document.getElementById(targetId);
+      var isOpen   = panel.classList.contains('nav-dropdown-open');
+      panel.classList.toggle('nav-dropdown-open', !isOpen);
+      this.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+</script>

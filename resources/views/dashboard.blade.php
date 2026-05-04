@@ -212,6 +212,16 @@
               <h4 class="stat-value">{{ $adminStats['outOfStock'] }}</h4>
               <small class="stat-label">Out of Stock</small>
             </a>
+
+            <a href="{{ route('admin.sms.index') }}" class="stat-card sms-balance-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-wallet2"></i></span>
+              </div>
+              <h4 class="stat-value sms-balance-stat-value">
+                {{ $smsBalance ? $smsBalance['formatted'] : '—' }}
+              </h4>
+              <small class="stat-label">SMS Wallet Balance</small>
+            </a>
           </section>
 
           <section class="middle-grid">

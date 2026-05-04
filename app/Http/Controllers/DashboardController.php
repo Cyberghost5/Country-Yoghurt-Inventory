@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\BulkSmsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,7 @@ class DashboardController extends Controller
         $customerStats = null;
         $recentStaff      = collect();
         $recentCustomers  = collect();
+        $smsBalance       = null;
 
         // ── Contacts in state (staff & customer) ──────────────────
         if (in_array($user->role, ['staff', 'customer'], true) && $user->state) {
@@ -101,6 +103,8 @@ class DashboardController extends Controller
             $recentCustomers = User::where('role', 'customer')
                 ->latest()->limit(5)
                 ->get(['name', 'shop_name', 'state', 'lga', 'created_at']);
+
+            $smsBalance = app(BulkSmsService::class)->getBalance();
         }
 
         // ── Staff stats ────────────────────────────────────────────
@@ -185,6 +189,7 @@ class DashboardController extends Controller
             'user', 'stateContacts',
             'adminStats', 'staffStats', 'customerStats',
             'recentStaff', 'recentCustomers',
+            'smsBalance',
             'range', 'fromInput', 'toInput', 'dateStart', 'dateEnd'
         ));
     }

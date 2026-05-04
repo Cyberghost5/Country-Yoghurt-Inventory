@@ -7,14 +7,11 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderNotification;
-use App\Services\BulkSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    public function __construct(protected BulkSmsService $sms) {}
-
     /* ── Index ── */
     public function index(Request $request)
     {
@@ -202,17 +199,6 @@ class OrderController extends Controller
 
             return $order;
         });
-
-        // Notify admin via SMS
-        $admin = User::where('role', 'admin')->whereNotNull('phone')->first();
-        if ($admin && $admin->phone) {
-            $count   = count($itemRecords);
-            $placedBy = $user->id !== $orderOwner->id ? " (placed by {$user->name})" : '';
-            $message = "New order {$order->order_number} placed for {$orderOwner->name}{$placedBy}. "
-                     . "{$count} item(s). Total: NGN " . number_format($totalAmount, 2)
-                     . ". Login to approve.";
-            $this->sms->send($admin->phone, $message);
-        }
 
         // Notify admin via database + email
         $adminUser = User::where('role', 'admin')->first();

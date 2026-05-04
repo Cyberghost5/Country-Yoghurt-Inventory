@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use App\Notifications\PaymentNotification;
+use App\Services\BulkSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -228,6 +229,16 @@ class PaymentController extends Controller
         ]);
 
         $payment->user->notify(new PaymentNotification('approved', $payment));
+
+        // SMS to customer
+        $customer = $payment->user;
+        if ($customer && $customer->phone) {
+            $order   = $payment->order;
+            $message = "Hi {$customer->name}, your payment of NGN "
+                     . number_format($payment->amount, 2)
+                     . " for order {$order->order_number} has been approved. Thank you! - Country Yoghurt";
+            app(BulkSmsService::class)->send($customer->phone, $message);
+        }
 
         return redirect()->route('payments.show', $payment)
             ->with('status', 'Payment approved.');

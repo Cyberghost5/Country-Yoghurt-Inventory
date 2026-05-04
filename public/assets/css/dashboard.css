@@ -2740,6 +2740,14 @@ tbody td {
   margin-top: 10px;
 }
 
+/* ── SMS wallet balance dashboard stat card ──────────────────────── */
+.stat-card.sms-balance-card {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+.stat-card.sms-balance-card .mini-icon { background: #bbf7d0; color: #15803d; }
+.sms-balance-stat-value { color: #15803d; font-size: 1.15rem; }
+
 .txn-card-foot {
   display: flex;
   align-items: center;

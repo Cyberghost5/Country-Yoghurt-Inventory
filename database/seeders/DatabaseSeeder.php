@@ -67,6 +67,9 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $this->call(ProductSeeder::class);
+        $this->call([
+            ProductSeeder::class,
+            UserSeeder::class,
+        ]);
     }
 }

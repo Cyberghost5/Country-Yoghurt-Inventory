@@ -44,15 +44,22 @@ class DeliveryController extends Controller
         return view('deliveries.index', compact('user', 'deliveries', 'counts'));
     }
 
-    /* ── Create form (staff only) ── */
+    /* ── Create form (staff + admin) ── */
     public function create(Request $request)
     {
         $user = $request->user();
-        if ($user->role !== 'staff') abort(403);
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
-        // Load approved orders that don't already have an active (pending/approved) delivery
+        // For staff/admin, load customers to show the customer selector
+        $customers = User::where('role', 'customer')
+            ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+            ->orderBy('name')
+            ->get(['id', 'name', 'shop_name', 'state']);
+
+        // Load approved orders (initial set — JS will filter by selected customer)
         $approvedOrders = Order::where('status', 'approved')
             ->whereDoesntHave('deliveries', fn ($q) => $q->whereIn('status', ['pending', 'approved']))
+            ->when($user->role === 'staff', fn ($q) => $q->whereHas('user', fn ($u) => $u->where('state', $user->state)))
             ->orderByDesc('created_at')
             ->get(['id', 'order_number', 'total_amount', 'user_id']);
 
@@ -65,14 +72,14 @@ class DeliveryController extends Controller
             }
         }
 
-        return view('deliveries.create', compact('user', 'approvedOrders', 'order'));
+        return view('deliveries.create', compact('user', 'approvedOrders', 'order', 'customers'));
     }
 
-    /* ── Store (staff only) ── */
+    /* ── Store (staff + admin) ── */
     public function store(Request $request)
     {
         $user = $request->user();
-        if ($user->role !== 'staff') abort(403);
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
         $data = $request->validate([
             'order_id'         => 'required|integer|exists:orders,id',

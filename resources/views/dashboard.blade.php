@@ -38,40 +38,186 @@
         {{-- ── Admin overview ──────────────────────────── --}}
         @if ($user->role === 'admin' && $adminStats)
 
-          <section class="kpi-grid" style="margin-bottom: 16px;">
-            <article class="stat-card">
+          {{-- Date filter bar --}}
+          @php
+            $rangeLabels = [
+              'all'                  => 'All Time',
+              'today'                => 'Today',
+              'yesterday'            => 'Yesterday',
+              'last_7'               => 'Last 7 Days',
+              'last_30'              => 'Last 30 Days',
+              'this_month'           => 'This Month',
+              'last_month'           => 'Last Month',
+              'this_month_last_year' => 'This Month Last Year',
+              'this_year'            => 'This Year',
+              'last_year'            => 'Last Year',
+              'current_fy'           => 'Current Financial Year',
+              'last_fy'              => 'Last Financial Year',
+              'custom'               => 'Custom Range',
+            ];
+          @endphp
+          <form method="GET" action="{{ route('dashboard') }}" id="dashFilterForm" class="dash-filter-bar">
+            <div class="dash-filter-left">
+              <label class="dash-filter-label">
+                <i class="bi bi-funnel"></i> Filter
+              </label>
+              <select name="range" class="filter-select" id="dashRangeSelect"
+                      onchange="dashRangeChanged(this.value)">
+                @foreach ($rangeLabels as $key => $label)
+                  <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>
+                    {{ $label }}
+                  </option>
+                @endforeach
+              </select>
+              <span id="dashCustomInputs" class="dash-custom-range"
+                    style="{{ $range === 'custom' ? '' : 'display:none;' }}">
+                <input type="date" name="from" class="filter-select"
+                       value="{{ $fromInput ?? '' }}" />
+                <span class="dash-filter-to">to</span>
+                <input type="date" name="to" class="filter-select"
+                       value="{{ $toInput ?? '' }}" />
+                <button type="submit" class="ghost-btn">Apply</button>
+              </span>
+            </div>
+            @if ($dateStart && $dateEnd)
+              <span class="dash-filter-period">
+                <i class="bi bi-calendar3"></i>
+                {{ $dateStart->format('d M Y') }} &ndash; {{ $dateEnd->format('d M Y') }}
+              </span>
+            @elseif ($range === 'all')
+              <span class="dash-filter-period">
+                <i class="bi bi-infinity"></i> No date filter applied
+              </span>
+            @endif
+          </form>
+
+          {{-- Row 1: Users --}}
+          <section class="kpi-grid" style="margin-bottom: 12px;">
+            <a href="{{ route('admin.staff.index') }}" class="stat-card">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-person-badge"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['staffCount'] }}</h4>
               <small class="stat-label">Total Staff</small>
-            </article>
+            </a>
 
-            <article class="stat-card info">
+            <a href="{{ route('admin.customers.index') }}" class="stat-card info">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-shop"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['customerCount'] }}</h4>
               <small class="stat-label">Total Customers</small>
-            </article>
+            </a>
 
-            <article class="stat-card warn">
+            <a href="{{ route('admin.staff.index') }}" class="stat-card warn">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-geo-alt"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['stateCount'] }}</h4>
               <small class="stat-label">Active States</small>
-            </article>
+            </a>
 
-            <article class="stat-card">
+            <a href="{{ route('admin.inventory.index') }}" class="stat-card info">
               <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-bag"></i></span>
+                <span class="mini-icon"><i class="bi bi-box-seam"></i></span>
               </div>
-              <h4 class="stat-value">
-                <a href="{{ route('orders.index') }}" class="stat-link">View</a>
-              </h4>
-              <small class="stat-label">Orders</small>
-            </article>
+              <h4 class="stat-value">{{ $adminStats['totalProducts'] }}</h4>
+              <small class="stat-label">Products
+                @if($adminStats['lowStock'] > 0 || $adminStats['outOfStock'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['lowStock'] + $adminStats['outOfStock'] }} alert{{ ($adminStats['lowStock'] + $adminStats['outOfStock']) > 1 ? 's' : '' }}</span>
+                @endif
+              </small>
+            </a>
+          </section>
+
+          {{-- Row 2: Orders + Payments --}}
+          <section class="kpi-grid" style="margin-bottom: 12px;">
+            <a href="{{ route('orders.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag-check"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['totalOrders'] }}</h4>
+              <small class="stat-label">Total Orders
+                @if($adminStats['pendingOrders'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingOrders'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('orders.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['approvedOrders'] }}</h4>
+              <small class="stat-label">Approved Orders</small>
+            </a>
+
+            <a href="{{ route('payments.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['totalPayments'] }}</h4>
+              <small class="stat-label">Total Payments
+                @if($adminStats['pendingPayments'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingPayments'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('transactions.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalRevenue'], 2) }}</h4>
+              <small class="stat-label">Total Revenue</small>
+            </a>
+
+            <a href="{{ route('payments.index') }}" class="stat-card danger">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalDebt'], 2) }}</h4>
+              <small class="stat-label">Total Debt (Unpaid)</small>
+            </a>
+          </section>
+
+          {{-- Row 3: Deliveries --}}
+          <section class="kpi-grid" style="margin-bottom: 16px;">
+            <a href="{{ route('deliveries.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-truck"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['totalDeliveries'] }}</h4>
+              <small class="stat-label">Total Deliveries
+                @if($adminStats['pendingDeliveries'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingDeliveries'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('deliveries.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-truck-front-fill"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['completedDeliveries'] }}</h4>
+              <small class="stat-label">Completed Deliveries</small>
+            </a>
+
+            <a href="{{ route('admin.inventory.index') }}" class="stat-card warn">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-exclamation-triangle"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['lowStock'] }}</h4>
+              <small class="stat-label">Low Stock Items</small>
+            </a>
+
+            <a href="{{ route('admin.inventory.index') }}" class="stat-card danger">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-x-circle"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['outOfStock'] }}</h4>
+              <small class="stat-label">Out of Stock</small>
+            </a>
           </section>
 
           <section class="middle-grid">
@@ -115,13 +261,14 @@
               <div class="table-scroll">
                 <table class="dash-table">
                   <thead>
-                    <tr><th>Name</th><th>Shop</th><th>Joined</th></tr>
+                    <tr><th>Name</th><th>Shop</th><th>State</th><th>Joined</th></tr>
                   </thead>
                   <tbody>
                     @forelse($recentCustomers as $row)
                       <tr>
                         <td>{{ $row->name }}</td>
                         <td>{{ $row->shop_name ?: '-' }}</td>
+                        <td>{{ $row->state ?: '-' }}</td>
                         <td>{{ optional($row->created_at)->format('d M Y') }}</td>
                       </tr>
                     @empty
@@ -132,6 +279,128 @@
               </div>
             </article>
 
+          </section>
+
+        @endif
+
+        {{-- ── Staff analytics ──────────────────────────── --}}
+        @if ($user->role === 'staff' && $staffStats)
+
+          {{-- Row 1: Orders in state --}}
+          <section class="kpi-grid" style="margin-bottom: 12px;">
+            <a href="{{ route('orders.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag-check"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $staffStats['stateOrders'] }}</h4>
+              <small class="stat-label">Orders in {{ $user->state ?? 'State' }}
+                @if($staffStats['pendingOrders'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $staffStats['pendingOrders'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('payments.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $staffStats['statePayments'] }}</h4>
+              <small class="stat-label">Payments in State
+                @if($staffStats['statePendingPayments'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $staffStats['statePendingPayments'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('transactions.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($staffStats['stateRevenue'], 2) }}</h4>
+              <small class="stat-label">Revenue from State</small>
+            </a>
+
+            <a href="{{ route('payments.index') }}" class="stat-card danger">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($staffStats['stateDebt'], 2) }}</h4>
+              <small class="stat-label">Debt ({{ $user->state ?? 'State' }})</small>
+            </a>
+
+            <a href="{{ route('deliveries.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-truck"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $staffStats['myDeliveries'] }}</h4>
+              <small class="stat-label">My Deliveries
+                @if($staffStats['myPendingDeliveries'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $staffStats['myPendingDeliveries'] }} pending</span>
+                @endif
+                @if($staffStats['myActiveDeliveries'] > 0)
+                  &nbsp;<span class="badge-info">{{ $staffStats['myActiveDeliveries'] }} active</span>
+                @endif
+              </small>
+            </a>
+          </section>
+
+        @endif
+
+        {{-- ── Customer analytics ───────────────────────── --}}
+        @if ($user->role === 'customer' && $customerStats)
+
+          <section class="kpi-grid" style="margin-bottom: 12px;">
+            <a href="{{ route('orders.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $customerStats['totalOrders'] }}</h4>
+              <small class="stat-label">My Orders
+                @if($customerStats['pendingOrders'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $customerStats['pendingOrders'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('orders.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $customerStats['approvedOrders'] }}</h4>
+              <small class="stat-label">Approved Orders</small>
+            </a>
+
+            <a href="{{ route('payments.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($customerStats['totalPaid'], 2) }}</h4>
+              <small class="stat-label">Total Paid
+                @if($customerStats['pendingPayments'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $customerStats['pendingPayments'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('deliveries.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-truck"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $customerStats['totalDeliveries'] }}</h4>
+              <small class="stat-label">My Deliveries
+                @if($customerStats['pendingDeliveries'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $customerStats['pendingDeliveries'] }} pending</span>
+                @endif
+              </small>
+            </a>
+
+            <a href="{{ route('payments.create') }}" class="stat-card danger">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($customerStats['myDebt'], 2) }}</h4>
+              <small class="stat-label">Outstanding Balance</small>
+            </a>
           </section>
 
         @endif
@@ -165,7 +434,7 @@
 
         {{-- ── Quick links (customer only) ────────────── --}}
         @if ($user->role === 'customer')
-          <section class="kpi-grid" style="margin-top: 16px;">
+          <section class="kpi-grid" style="margin-top: 8px;">
             <a href="{{ route('orders.index') }}" class="stat-card stat-card-link">
               <div class="stat-top"><span class="mini-icon"><i class="bi bi-bag"></i></span></div>
               <h4 class="stat-value" style="font-size:1.1rem;">My Orders</h4>
@@ -173,6 +442,14 @@
             <a href="{{ route('orders.create') }}" class="stat-card stat-card-link">
               <div class="stat-top"><span class="mini-icon"><i class="bi bi-plus-circle"></i></span></div>
               <h4 class="stat-value" style="font-size:1.1rem;">Place Order</h4>
+            </a>
+            <a href="{{ route('payments.index') }}" class="stat-card stat-card-link">
+              <div class="stat-top"><span class="mini-icon"><i class="bi bi-cash"></i></span></div>
+              <h4 class="stat-value" style="font-size:1.1rem;">Payments</h4>
+            </a>
+            <a href="{{ route('deliveries.index') }}" class="stat-card stat-card-link">
+              <div class="stat-top"><span class="mini-icon"><i class="bi bi-truck"></i></span></div>
+              <h4 class="stat-value" style="font-size:1.1rem;">Deliveries</h4>
             </a>
           </section>
         @endif
@@ -193,6 +470,16 @@
         if (close)    close.addEventListener('click', closeSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
+
+      function dashRangeChanged(val) {
+        var ci = document.getElementById('dashCustomInputs');
+        if (val === 'custom') {
+          ci.style.display = '';
+        } else {
+          ci.style.display = 'none';
+          document.getElementById('dashFilterForm').submit();
+        }
+      }
     </script>
   </body>
 </html>

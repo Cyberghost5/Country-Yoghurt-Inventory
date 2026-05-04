@@ -651,6 +651,20 @@ body {
   background: var(--card-bg);
   border-radius: var(--radius-card);
   padding: 14px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(20, 63, 51, 0.12);
+  border-color: var(--action);
+}
+
+a.stat-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 
 .stat-top {
@@ -687,6 +701,36 @@ body {
 
 .stat-card.danger .mini-icon {
   background: #b32c2c;
+}
+
+.stat-card.success {
+  border-color: #cdecd8;
+}
+
+.stat-card.success .mini-icon {
+  background: #1a6e3c;
+}
+
+.badge-warn {
+  display: inline-block;
+  font-size: 0.65rem;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #fcecd2;
+  color: #8f4f1f;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-info {
+  display: inline-block;
+  font-size: 0.65rem;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #dde8fd;
+  color: #1c096c;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .trend-pill {
@@ -1791,7 +1835,7 @@ tbody td {
   background: rgba(var(--primary-rgb, 20, 63, 51), 0.03);
 }
 
-/* -- Create form � item rows -- */
+/* -- Create form - item rows -- */
 .ord-items-header {
   display: flex;
   align-items: center;
@@ -2110,7 +2154,63 @@ tbody td {
 }
 .filter-select:focus { border-color: var(--action); }
 
-/* -- Desktop table wrapper -- */
+/* ── Dashboard date-filter bar ─────────────────────────────────── */
+.dash-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.dash-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dash-filter-label {
+  font-size: 0.80rem;
+  color: var(--text-soft);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.dash-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dash-filter-to {
+  font-size: 0.80rem;
+  color: var(--text-soft);
+}
+
+.dash-filter-period {
+  font-size: 0.76rem;
+  color: var(--text-soft);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+
 .txn-table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-card);
@@ -2285,8 +2385,9 @@ tbody td {
   transition: opacity 0.15s;
 }
 .ua-btn:hover { opacity: 0.82; }
-.ua-edit { background: #e0f2fe; color: #0369a1; }
-.ua-imp  { background: #fef3c7; color: #92400e; font-family: inherit; }
+.ua-edit  { background: #e0f2fe; color: #0369a1; }
+.ua-view  { background: #f0fdf4; color: #166534; }
+.ua-imp   { background: #fef3c7; color: #92400e; font-family: inherit; }
 
 /* -- User role badges (edit view) -- */
 .user-role-badge {

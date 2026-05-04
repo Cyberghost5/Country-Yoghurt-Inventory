@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ $order ? 'Pay for ' . $order->order_number : 'New Payment' }} � Country Yoghurt</title>
+    <title>{{ $order ? 'Pay for ' . $order->order_number : 'New Payment' }} - Country Yoghurt</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -24,7 +24,7 @@
             <h2>{{ $order ? 'Submit Payment' : 'New Payment' }}</h2>
             <p>
               @if ($order)
-                For order <strong>{{ $order->order_number }}</strong> � ?{{ number_format($order->total_amount, 2) }}
+                For order <strong>{{ $order->order_number }}</strong> - ?{{ number_format($order->total_amount, 2) }}
               @else
                 Submit a payment with proof of transfer
               @endif
@@ -57,6 +57,34 @@
         <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" id="paymentForm">
           @csrf
 
+          {{-- Customer selector (staff / admin only) --}}
+          @if (in_array($user->role, ['admin', 'staff']))
+          <section class="card" style="margin-bottom: 16px;">
+            <h3 class="ord-section-title" style="margin-bottom: 16px;">
+              <i class="bi bi-person"></i> Customer
+            </h3>
+            <div class="pay-form-field">
+              <label class="inv-field-label" for="customer_id">
+                Payment on behalf of <span class="req">*</span>
+              </label>
+              @if ($customers->isEmpty())
+                <p style="font-size:0.85rem; color:var(--text-soft); margin:0;">
+                  No customers found {{ $user->role === 'staff' ? 'in your state' : '' }}.
+                </p>
+              @else
+                <select id="customer_id" name="customer_id" class="inv-select" required>
+                  <option value="">- Select customer -</option>
+                  @foreach ($customers as $c)
+                    <option value="{{ $c->id }}">
+                      {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                    </option>
+                  @endforeach
+                </select>
+              @endif
+            </div>
+          </section>
+          @endif
+
           <section class="card" style="margin-bottom: 16px;">
             <h3 class="ord-section-title" style="margin-bottom: 16px;">
               <i class="bi bi-bag"></i> Link to Order
@@ -64,17 +92,25 @@
             </h3>
             <div class="pay-form-field">
               <label class="inv-field-label" for="order_id">Order</label>
-              <select id="order_id" name="order_id" class="inv-select">
-                <option value="">� No specific order (use Reason below) �</option>
-                @foreach ($payableOrders as $o)
-                  <option value="{{ $o->id }}"
-                          data-amount="{{ number_format($o->total_amount, 2, '.', '') }}"
-                          data-number="{{ $o->order_number }}"
-                          {{ (old('order_id', $order?->id) == $o->id) ? 'selected' : '' }}>
-                    {{ $o->order_number }} � ?{{ number_format($o->total_amount, 2) }} ({{ ucfirst($o->status) }})
-                  </option>
-                @endforeach
-              </select>
+              @if (in_array($user->role, ['admin', 'staff']))
+                <select id="order_id" name="order_id" class="inv-select">
+                  <option value="">- Select a customer first -</option>
+                </select>
+              @else
+                <select id="order_id" name="order_id" class="inv-select">
+                  <option value="">- No specific order (use Reason below) -</option>
+                  @foreach ($payableOrders as $o)
+                    @php $remaining = round((float)$o->total_amount - $o->paidAmount(), 2); @endphp
+                    <option value="{{ $o->id }}"
+                            data-amount="{{ number_format((float)$o->total_amount, 2, '.', '') }}"
+                            data-remaining="{{ number_format($remaining, 2, '.', '') }}"
+                            data-number="{{ $o->order_number }}"
+                            {{ (old('order_id', $order?->id) == $o->id) ? 'selected' : '' }}>
+                      {{ $o->order_number }} - ₦{{ number_format($remaining, 2) }} remaining ({{ ucfirst($o->status) }})
+                    </option>
+                  @endforeach
+                </select>
+              @endif
               @error('order_id')
                 <span class="inv-field-error">{{ $message }}</span>
               @enderror
@@ -82,11 +118,15 @@
             <div id="orderSummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
               <div class="pay-summary-row">
                 <span>Order</span>
-                <strong id="summaryNumber">�</strong>
+                <strong id="summaryNumber">-</strong>
+              </div>
+              <div class="pay-summary-row">
+                <span>Order Total</span>
+                <strong id="summaryAmount">-</strong>
               </div>
               <div class="pay-summary-row pay-summary-total">
-                <span>Total Due</span>
-                <strong id="summaryAmount">�</strong>
+                <span>Remaining Balance</span>
+                <strong id="summaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
               </div>
             </div>
           </section>
@@ -125,7 +165,7 @@
               <div class="pay-form-field">
                 <label class="inv-field-label" for="proof">
                   Proof of Payment
-                  <small style="font-weight:400; color:var(--text-soft);">(JPG, PNG or PDF � max 4 MB)</small>
+                  <small style="font-weight:400; color:var(--text-soft);">(JPG, PNG or PDF - max 4 MB)</small>
                 </label>
                 <div class="pay-upload-area" id="uploadArea">
                   <input type="file" id="proof" name="proof" accept=".jpg,.jpeg,.png,.pdf"
@@ -156,7 +196,7 @@
               <textarea id="reason" name="reason" rows="2"
                         class="inv-field-input {{ $errors->has('reason') ? 'is-invalid' : '' }}"
                         style="width:100%; resize:vertical;"
-                        placeholder="e.g. Advance deposit, partial payment, other charge�">{{ old('reason') }}</textarea>
+                        placeholder="e.g. Advance deposit, partial payment, other charge-">{{ old('reason') }}</textarea>
               @error('reason') <span class="inv-field-error">{{ $message }}</span> @enderror
             </div>
 
@@ -164,7 +204,7 @@
               <label class="inv-field-label" for="notes">Additional Notes</label>
               <textarea id="notes" name="notes" rows="2" class="inv-field-input"
                         style="width:100%; resize:vertical;"
-                        placeholder="Any extra information for the admin�">{{ old('notes') }}</textarea>
+                        placeholder="Any extra information for the admin-">{{ old('notes') }}</textarea>
             </div>
           </section>
 
@@ -185,6 +225,11 @@
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
+      const CY_AJAX_ORDERS_URL = '{{ route('ajax.customerOrders') }}';
+      const CY_CSRF            = '{{ csrf_token() }}';
+      const CY_IS_STAFF_ADMIN  = {{ in_array($user->role, ['admin','staff']) ? 'true' : 'false' }};
+    </script>
+    <script>
       (function() {
         var sidebar  = document.getElementById('sidebar');
         var backdrop = document.getElementById('sidebarBackdrop');
@@ -197,22 +242,59 @@
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
 
+      var customerSelect = document.getElementById('customer_id');
       var orderSelect   = document.getElementById('order_id');
       var amountInput   = document.getElementById('amount');
       var summary       = document.getElementById('orderSummary');
       var sumNumber     = document.getElementById('summaryNumber');
       var sumAmount     = document.getElementById('summaryAmount');
+      var sumRemaining  = document.getElementById('summaryRemaining');
       var reasonInput   = document.getElementById('reason');
       var reasonReqMark = document.getElementById('reasonReqMark');
       var reasonHint    = document.getElementById('reasonHint');
 
+      function populatePaymentOrders(orders) {
+        if (!orderSelect) return;
+        orderSelect.innerHTML = '<option value="">- No specific order (use Reason below) -</option>';
+        if (orders && orders.length) {
+          orders.forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o.id;
+            opt.dataset.amount    = o.total_amount;
+            opt.dataset.remaining = o.remaining;
+            opt.dataset.number    = o.order_number;
+            opt.textContent = o.order_number + ' - ₦' + o.remaining + ' remaining (' + o.status.charAt(0).toUpperCase() + o.status.slice(1) + ')';
+            orderSelect.appendChild(opt);
+          });
+        }
+        onOrderChange();
+      }
+
+      if (customerSelect) {
+        customerSelect.addEventListener('change', function() {
+          var cid = this.value;
+          if (!cid) {
+            if (orderSelect) orderSelect.innerHTML = '<option value="">- Select a customer first -</option>';
+            if (summary) summary.style.display = 'none';
+            return;
+          }
+          fetch(CY_AJAX_ORDERS_URL + '?customer_id=' + cid + '&filter=payable', {
+            headers: { 'X-CSRF-TOKEN': CY_CSRF, 'Accept': 'application/json' }
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(orders) { populatePaymentOrders(orders); });
+        });
+      }
+
       function onOrderChange() {
         var opt = orderSelect ? orderSelect.options[orderSelect.selectedIndex] : null;
         if (opt && opt.value) {
-          if (sumNumber) sumNumber.textContent = opt.dataset.number;
-          if (sumAmount) sumAmount.textContent = '?' + opt.dataset.amount;
-          if (summary)  summary.style.display  = '';
-          if (amountInput && !amountInput.dataset.userEdited) amountInput.value = opt.dataset.amount;
+          if (sumNumber)    sumNumber.textContent    = opt.dataset.number;
+          if (sumAmount)    sumAmount.textContent    = '₦' + opt.dataset.amount;
+          if (sumRemaining) sumRemaining.textContent = '₦' + (opt.dataset.remaining || opt.dataset.amount);
+          if (summary)      summary.style.display   = '';
+          var fillAmount = opt.dataset.remaining || opt.dataset.amount;
+          if (amountInput && !amountInput.dataset.userEdited) amountInput.value = fillAmount;
           if (reasonInput)   reasonInput.required = false;
           if (reasonReqMark) reasonReqMark.style.display = 'none';
           if (reasonHint)    reasonHint.textContent = '(optional when an order is selected)';

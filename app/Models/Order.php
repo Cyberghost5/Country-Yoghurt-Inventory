@@ -74,4 +74,21 @@ class Order extends Model
             default     => '',
         };
     }
+
+    /* ── Payment helpers ── */
+
+    public function paidAmount(): float
+    {
+        return (float) $this->payments()->where('status', 'approved')->sum('amount');
+    }
+
+    public function remainingAmount(): float
+    {
+        return round(max(0, (float) $this->total_amount - $this->paidAmount()), 2);
+    }
+
+    public function isFullyPaid(): bool
+    {
+        return $this->remainingAmount() <= 0;
+    }
 }

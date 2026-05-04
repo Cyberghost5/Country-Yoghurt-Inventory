@@ -53,29 +53,40 @@ class PaymentController extends Controller
             $order = Order::find($orderId);
 
             if ($order) {
-                if ($user->role !== 'admin' && $order->user_id !== $user->id) abort(403);
+                if (!in_array($user->role, ['admin', 'staff'], true) && $order->user_id !== $user->id) abort(403);
 
                 if (!in_array($order->status, ['approved', 'delivered'])) {
                     return redirect()->route('orders.show', $order)
                         ->with('error', 'Only approved or delivered orders can receive a payment.');
                 }
 
-                $active = $order->payments()->whereIn('status', ['pending', 'approved'])->first();
-                if ($active) {
-                    return redirect()->route('payments.show', $active)
-                        ->with('error', 'This order already has an active payment submission.');
+                if ($order->isFullyPaid()) {
+                    return redirect()->route('orders.show', $order)
+                        ->with('error', 'This order is already fully paid.');
                 }
             }
         }
 
-        // Orders the user can pay (for the dropdown)
-        $payableOrders = Order::where('status', 'approved')
-            ->orWhere('status', 'delivered')
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
-            ->orderByDesc('created_at')
-            ->get(['id', 'order_number', 'total_amount', 'status']);
+        // For staff/admin: load customers so they can select on whose behalf this payment is
+        $customers = collect();
+        if (in_array($user->role, ['admin', 'staff'], true)) {
+            $customers = User::where('role', 'customer')
+                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->orderBy('name')
+                ->get(['id', 'name', 'shop_name', 'state']);
+        }
 
-        return view('payments.create', compact('user', 'order', 'payableOrders'));
+        // Orders the current user can pay (for direct customer use)
+        $payableOrders = collect();
+        if ($user->role === 'customer') {
+            $payableOrders = Order::whereIn('status', ['approved', 'delivered'])
+                ->where('user_id', $user->id)
+                ->whereRaw('total_amount > COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.order_id = orders.id AND p.status = ?), 0)', ['approved'])
+                ->orderByDesc('created_at')
+                ->get(['id', 'order_number', 'total_amount', 'status']);
+        }
+
+        return view('payments.create', compact('user', 'order', 'payableOrders', 'customers'));
     }
 
     /* ── Store ── */
@@ -85,6 +96,7 @@ class PaymentController extends Controller
 
         $request->validate([
             'order_id'       => 'nullable|integer|exists:orders,id',
+            'customer_id'    => 'nullable|integer|exists:users,id',
             'reason'         => 'required_without:order_id|nullable|string|max:1000',
             'amount'         => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:bank_transfer,cash,pos,mobile_money',
@@ -97,17 +109,39 @@ class PaymentController extends Controller
         if ($orderId = $request->input('order_id')) {
             $order = Order::findOrFail($orderId);
 
-            if ($user->role !== 'admin' && $order->user_id !== $user->id) abort(403);
+            if (!in_array($user->role, ['admin', 'staff'], true) && $order->user_id !== $user->id) abort(403);
 
             if (!in_array($order->status, ['approved', 'delivered'])) {
                 return back()->withInput()
                     ->withErrors(['order_id' => 'That order cannot receive a payment in its current status.']);
             }
 
-            $active = $order->payments()->whereIn('status', ['pending', 'approved'])->first();
-            if ($active) {
-                return redirect()->route('payments.show', $active)
-                    ->with('error', 'This order already has an active payment submission.');
+            if ($order->isFullyPaid()) {
+                return back()->withInput()
+                    ->withErrors(['order_id' => 'This order is already fully paid.']);
+            }
+        }
+
+        // Determine the payment owner (customer on whose behalf staff/admin is acting)
+        $paymentOwnerId = $user->id;
+        if (in_array($user->role, ['admin', 'staff'], true)) {
+            if ($order) {
+                $paymentOwnerId = $order->user_id;
+            } elseif ($request->filled('customer_id')) {
+                $customer = User::where('role', 'customer')
+                    ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                    ->findOrFail($request->integer('customer_id'));
+                $paymentOwnerId = $customer->id;
+            }
+        }
+
+        // Validate payment amount does not exceed remaining balance
+        if ($order) {
+            $remaining = $order->remainingAmount();
+            $submitted = round((float) $request->input('amount'), 2);
+            if ($submitted > $remaining) {
+                return back()->withInput()
+                    ->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . ' on this order.']);
             }
         }
 
@@ -118,8 +152,8 @@ class PaymentController extends Controller
 
         $payment = Payment::create([
             'order_id'       => $order?->id,
-            'user_id'        => $user->id,
-            'amount'         => $request->input('amount'),
+            'user_id'        => $paymentOwnerId,
+            'amount'         => round((float) $request->input('amount'), 2),
             'payment_method' => $request->input('payment_method'),
             'reference'      => $request->input('reference'),
             'proof_path'     => $proofPath,

@@ -50,7 +50,16 @@ class OrderController extends Controller
                            ->orderBy('name')
                            ->get(['id', 'name', 'category', 'unit', 'selling_price', 'quantity']);
 
-        return view('orders.create', compact('user', 'products'));
+        // Staff/admin can place order on behalf of a customer
+        $customers = collect();
+        if (in_array($user->role, ['admin', 'staff'], true)) {
+            $customers = User::where('role', 'customer')
+                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->orderBy('name')
+                ->get(['id', 'name', 'shop_name', 'state']);
+        }
+
+        return view('orders.create', compact('user', 'products', 'customers'));
     }
 
     /* ── AJAX stock check ── */
@@ -71,6 +80,40 @@ class OrderController extends Controller
         ]);
     }
 
+    /* ── AJAX: orders for a customer (used by delivery/payment forms) ── */
+    public function ajaxCustomerOrders(Request $request)
+    {
+        $actor      = $request->user();
+        $customerId = $request->integer('customer_id');
+        $filter     = $request->input('filter', 'any'); // approved | payable | any
+
+        // Validate the customer exists and staff can only see their state's customers
+        $customer = User::where('role', 'customer')
+            ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
+            ->findOrFail($customerId);
+
+        $query = Order::where('user_id', $customer->id);
+
+        if ($filter === 'approved') {
+            $query->where('status', 'approved')
+                  ->whereDoesntHave('deliveries', fn ($q) => $q->whereIn('status', ['pending', 'approved']));
+        } elseif ($filter === 'payable') {
+            $query->whereIn('status', ['approved', 'delivered'])
+                  ->whereRaw('total_amount > COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.order_id = orders.id AND p.status = ?), 0)', ['approved']);
+        }
+
+        $orders = $query->orderByDesc('created_at')
+            ->get(['id', 'order_number', 'total_amount', 'status']);
+
+        return response()->json($orders->map(fn ($o) => [
+            'id'           => $o->id,
+            'order_number' => $o->order_number,
+            'total_amount' => number_format((float)$o->total_amount, 2, '.', ''),
+            'remaining'    => number_format($o->remainingAmount(), 2, '.', ''),
+            'status'       => $o->status,
+        ]));
+    }
+
     /* ── Store ── */
     public function store(Request $request)
     {
@@ -81,7 +124,17 @@ class OrderController extends Controller
             'items.*.product_id'     => 'required|integer|exists:products,id',
             'items.*.quantity'       => 'required|integer|min:1',
             'notes'                  => 'nullable|string|max:1000',
+            'customer_id'            => 'nullable|integer|exists:users,id',
         ]);
+
+        // Determine the order owner
+        $orderOwner = $user;
+        if (in_array($user->role, ['admin', 'staff'], true) && $request->filled('customer_id')) {
+            $customer = User::where('role', 'customer')
+                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->findOrFail($request->integer('customer_id'));
+            $orderOwner = $customer;
+        }
 
         $rawItems    = $request->input('items');
         $itemRecords = [];
@@ -119,12 +172,12 @@ class OrderController extends Controller
             $totalAmount += $subtotal;
         }
 
-        $order = DB::transaction(function () use ($user, $request, $itemRecords, $totalAmount) {
+        $order = DB::transaction(function () use ($user, $orderOwner, $request, $itemRecords, $totalAmount) {
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
-                'user_id'      => $user->id,
+                'user_id'      => $orderOwner->id,
                 'notes'        => $request->input('notes'),
-                'total_amount' => $totalAmount,
+                'total_amount' => round($totalAmount, 2),
                 'status'       => 'pending',
             ]);
 
@@ -137,7 +190,8 @@ class OrderController extends Controller
         $admin = User::where('role', 'admin')->whereNotNull('phone')->first();
         if ($admin && $admin->phone) {
             $count   = count($itemRecords);
-            $message = "New order {$order->order_number} placed by {$user->name} ({$user->role}). "
+            $placedBy = $user->id !== $orderOwner->id ? " (placed by {$user->name})" : '';
+            $message = "New order {$order->order_number} placed for {$orderOwner->name}{$placedBy}. "
                      . "{$count} item(s). Total: NGN " . number_format($totalAmount, 2)
                      . ". Login to approve.";
             $this->sms->send($admin->phone, $message);

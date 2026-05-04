@@ -45,6 +45,29 @@
         <form method="POST" action="{{ route('orders.store') }}" id="orderForm">
           @csrf
 
+          {{-- ── Customer selector (staff / admin only) ── --}}
+          @if (in_array($user->role, ['admin', 'staff']))
+          <section class="card" style="margin-bottom: 16px;" id="customerSection">
+            <h3 class="ord-section-title"><i class="bi bi-person"></i> Customer</h3>
+            <div class="pay-form-field">
+              <label class="inv-field-label" for="customer_id">
+                Placing order on behalf of <span class="req">*</span>
+              </label>
+              <select id="customer_id" name="customer_id" class="inv-select {{ $errors->has('customer_id') ? 'is-invalid' : '' }}" required>
+                <option value="">- Select customer -</option>
+                @foreach ($customers as $c)
+                  <option value="{{ $c->id }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>
+                    {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                  </option>
+                @endforeach
+              </select>
+              @error('customer_id')
+                <span class="inv-field-error">{{ $message }}</span>
+              @enderror
+            </div>
+          </section>
+          @endif
+
           {{-- Validation errors --}}
           @if ($errors->any())
             <div class="lp-error" style="margin-bottom: 14px;">

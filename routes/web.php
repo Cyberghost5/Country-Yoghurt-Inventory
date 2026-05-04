@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/staff', [AdminPagesController::class, 'staffIndex'])->name('admin.staff.index');
     Route::get('/admin/admins', [AdminPagesController::class, 'adminIndex'])->name('admin.admins.index');
     Route::get('/admin/customers', [AdminPagesController::class, 'customerIndex'])->name('admin.customers.index');
+    Route::get('/staff/customers', [AdminPagesController::class, 'staffCustomerIndex'])->name('staff.customers.index');
+    Route::get('/customers/{customer}', [AdminPagesController::class, 'customerShow'])->name('customers.show');
 
     /* ── Inventory ── */
     Route::get('/admin/inventory', [InventoryController::class, 'index'])->name('admin.inventory.index');
@@ -84,4 +86,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/users/{user}', [UserManagementController::class, 'updateUser'])->name('users.update');
     Route::post('/users/{user}/impersonate', [UserManagementController::class, 'impersonate'])->name('users.impersonate');
     Route::post('/impersonate/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonate.stop');
+
+    /* ── AJAX helpers ── */
+    Route::get('/ajax/customers', [UserManagementController::class, 'ajaxCustomers'])->name('ajax.customers');
+    Route::get('/ajax/customer-orders', [OrderController::class, 'ajaxCustomerOrders'])->name('ajax.customerOrders');
 });

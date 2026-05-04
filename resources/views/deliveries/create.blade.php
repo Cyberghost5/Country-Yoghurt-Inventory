@@ -44,6 +44,32 @@
         <form method="POST" action="{{ route('deliveries.store') }}" id="deliveryForm">
           @csrf
 
+          {{-- Customer selector (staff + admin) --}}
+          <section class="card" style="margin-bottom: 16px;">
+            <h3 class="ord-section-title" style="margin-bottom: 16px;">
+              <i class="bi bi-person"></i> Customer
+            </h3>
+            <div class="pay-form-field">
+              <label class="inv-field-label" for="customer_id">
+                Customer <span class="req">*</span>
+              </label>
+              @if ($customers->isEmpty())
+                <p style="font-size:0.85rem; color:var(--text-soft); margin:0;">
+                  No customers found {{ $user->role === 'staff' ? 'in your state' : '' }}.
+                </p>
+              @else
+                <select id="customer_id" name="customer_id" class="inv-select" required>
+                  <option value="">- Select customer -</option>
+                  @foreach ($customers as $c)
+                    <option value="{{ $c->id }}">
+                      {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                    </option>
+                  @endforeach
+                </select>
+              @endif
+            </div>
+          </section>
+
           {{-- Order selection --}}
           <section class="card" style="margin-bottom: 16px;">
             <h3 class="ord-section-title" style="margin-bottom: 16px;">
@@ -51,7 +77,7 @@
             </h3>
             <div class="pay-form-field">
               <label class="inv-field-label" for="order_id">Select Order <span class="req">*</span></label>
-              @if ($approvedOrders->isEmpty())
+              @if ($approvedOrders->isEmpty() && $customers->isEmpty())
                 <p style="font-size:0.85rem; color:var(--text-soft); margin:0;">
                   No approved orders are currently available for delivery scheduling.
                 </p>
@@ -59,15 +85,7 @@
               @else
                 <select id="order_id" name="order_id"
                         class="inv-select {{ $errors->has('order_id') ? 'is-invalid' : '' }}" required>
-                  <option value="">- Select an order -</option>
-                  @foreach ($approvedOrders as $o)
-                    <option value="{{ $o->id }}"
-                            data-number="{{ $o->order_number }}"
-                            data-amount="{{ number_format($o->total_amount, 2) }}"
-                            {{ (old('order_id', $order?->id) == $o->id) ? 'selected' : '' }}>
-                      {{ $o->order_number }} - ₦{{ number_format($o->total_amount, 2) }}
-                    </option>
-                  @endforeach
+                  <option value="">- Select a customer first -</option>
                 </select>
               @endif
               @error('order_id')
@@ -133,7 +151,7 @@
 
           <div class="ord-submit-row">
             <a href="{{ route('deliveries.index') }}" class="ghost-btn">Cancel</a>
-            <button type="submit" class="primary-btn" {{ $approvedOrders->isEmpty() ? 'disabled' : '' }}>
+            <button type="submit" class="primary-btn" {{ ($approvedOrders->isEmpty() && $customers->isEmpty()) ? 'disabled' : '' }}>
               <i class="bi bi-truck"></i> Schedule Delivery
             </button>
           </div>
@@ -142,6 +160,23 @@
     </div>
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    @php
+      $ordersMapJson = json_encode(
+        $approvedOrders->groupBy('user_id')->map(fn ($orders) => $orders->map(fn ($o) => [
+          'id'           => $o->id,
+          'order_number' => $o->order_number,
+          'total_amount' => number_format((float)$o->total_amount, 2),
+        ])->values()->all())->all(),
+        JSON_HEX_TAG
+      );
+    @endphp
+    <script>
+      const CY_ORDERS_BY_CUSTOMER = {!! $ordersMapJson !!};
+      const CY_AJAX_ORDERS_URL    = '{{ route('ajax.customerOrders') }}';
+      const CY_CSRF               = '{{ csrf_token() }}';
+    </script>
+
     <script>
       (function() {
         var sidebar  = document.getElementById('sidebar');
@@ -155,10 +190,45 @@
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
 
-      var orderSelect  = document.getElementById('order_id');
-      var summary      = document.getElementById('orderSummary');
-      var sumNumber    = document.getElementById('summaryNumber');
-      var sumAmount    = document.getElementById('summaryAmount');
+      var customerSelect = document.getElementById('customer_id');
+      var orderSelect    = document.getElementById('order_id');
+      var summary        = document.getElementById('orderSummary');
+      var sumNumber      = document.getElementById('summaryNumber');
+      var sumAmount      = document.getElementById('summaryAmount');
+
+      function populateOrders(orders) {
+        if (!orderSelect) return;
+        orderSelect.innerHTML = '<option value="">- Select an order -</option>';
+        if (!orders || !orders.length) {
+          orderSelect.innerHTML = '<option value="">No approved orders for this customer</option>';
+          return;
+        }
+        orders.forEach(function(o) {
+          var opt = document.createElement('option');
+          opt.value = o.id;
+          opt.dataset.number = o.order_number;
+          opt.dataset.amount = o.total_amount;
+          opt.textContent    = o.order_number + ' - ₦' + o.total_amount;
+          orderSelect.appendChild(opt);
+        });
+      }
+
+      if (customerSelect) {
+        customerSelect.addEventListener('change', function() {
+          var cid = this.value;
+          if (!cid) {
+            if (orderSelect) orderSelect.innerHTML = '<option value="">- Select a customer first -</option>';
+            if (summary) summary.style.display = 'none';
+            return;
+          }
+          // Fetch via AJAX so it's always fresh
+          fetch(CY_AJAX_ORDERS_URL + '?customer_id=' + cid + '&filter=approved', {
+            headers: { 'X-CSRF-TOKEN': CY_CSRF, 'Accept': 'application/json' }
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(orders) { populateOrders(orders); onOrderChange(); });
+        });
+      }
 
       function onOrderChange() {
         var opt = orderSelect ? orderSelect.options[orderSelect.selectedIndex] : null;

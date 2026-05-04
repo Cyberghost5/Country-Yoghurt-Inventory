@@ -110,32 +110,32 @@ class UserManagementController extends Controller
         return $role === 'admin';
     }
 
-    public function editUser(Request $request, User $targetUser)
+    public function editUser(Request $request, User $user)
     {
         if ($request->user()->role !== 'admin') abort(403);
 
         return view('users.edit', [
             'user'       => $request->user(),
-            'targetUser' => $targetUser,
+            'targetUser' => $user,
             'states'     => array_keys(config('nigeria.lgas')),
             'lgaMap'     => config('nigeria.lgas'),
         ]);
     }
 
-    public function updateUser(Request $request, User $targetUser)
+    public function updateUser(Request $request, User $user)
     {
         if ($request->user()->role !== 'admin') abort(403);
 
         $rules = [
             'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($targetUser->id)],
+            'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone'    => ['required', 'string', 'max:20'],
             'state'    => ['required', 'string'],
             'lga'      => ['required', 'string', 'max:120'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
 
-        if ($targetUser->role === 'customer') {
+        if ($user->role === 'customer') {
             $rules['shop_name'] = ['required', 'string', 'max:255'];
             $rules['address']   = ['required', 'string', 'max:255'];
         }
@@ -156,7 +156,7 @@ class UserManagementController extends Controller
             'lga'   => $data['lga'],
         ];
 
-        if ($targetUser->role === 'customer') {
+        if ($user->role === 'customer') {
             $updates['shop_name'] = $data['shop_name'];
             $updates['address']   = $data['address'];
         }
@@ -165,21 +165,21 @@ class UserManagementController extends Controller
             $updates['password'] = Hash::make($data['password']);
         }
 
-        $targetUser->update($updates);
+        $user->update($updates);
 
-        return redirect()->route('users.edit', $targetUser->id)->with('status', 'User updated successfully.');
+        return redirect()->route('users.edit', $user->id)->with('status', 'User updated successfully.');
     }
 
-    public function impersonate(Request $request, User $targetUser)
+    public function impersonate(Request $request, User $user)
     {
         if ($request->user()->role !== 'admin') abort(403);
-        if ($request->user()->id === $targetUser->id) abort(422, 'You cannot impersonate yourself.');
+        if ($request->user()->id === $user->id) abort(422, 'You cannot impersonate yourself.');
         if (session('impersonating_admin_id')) abort(422, 'Already impersonating a user. Stop first.');
 
         session(['impersonating_admin_id' => $request->user()->id]);
-        Auth::login($targetUser);
+        Auth::login($user);
 
-        return redirect()->route('dashboard')->with('status', 'Now impersonating ' . $targetUser->name . '.');
+        return redirect()->route('dashboard')->with('status', 'Now impersonating ' . $user->name . '.');
     }
 
     public function stopImpersonating(Request $request)
@@ -192,6 +192,25 @@ class UserManagementController extends Controller
         Auth::login($admin);
 
         return redirect()->route('dashboard')->with('status', 'Returned to your admin account.');
+    }
+
+    /* ── AJAX: customers list (state-scoped for staff, all for admin) ── */
+    public function ajaxCustomers(Request $request)
+    {
+        $actor = $request->user();
+        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
+
+        $customers = User::where('role', 'customer')
+            ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
+            ->orderBy('name')
+            ->get(['id', 'name', 'shop_name', 'state']);
+
+        return response()->json($customers->map(fn ($c) => [
+            'id'        => $c->id,
+            'name'      => $c->name,
+            'shop_name' => $c->shop_name,
+            'state'     => $c->state,
+        ]));
     }
 
     public function createAdmin(Request $request)

@@ -3,6 +3,41 @@
   Requires: $user  (Illuminate\Foundation\Auth\User)
   Active links are detected automatically from the current route.
 --}}
+@php
+use App\Models\Delivery;
+use App\Models\Order;
+use App\Models\Payment;
+use App\Models\User;
+
+$_u = auth()->user();
+
+// Orders pending
+$_pendingOrders = match($_u->role) {
+    'admin'    => Order::where('status', 'pending')->count(),
+    'staff'    => Order::whereIn('user_id',
+                      User::where('role', 'customer')->where('state', $_u->state)->pluck('id')
+                  )->where('status', 'pending')->count(),
+    'customer' => Order::where('user_id', $_u->id)->where('status', 'pending')->count(),
+    default    => 0,
+};
+
+// Payments pending
+$_pendingPayments = match($_u->role) {
+    'admin'    => Payment::where('status', 'pending')->count(),
+    'staff'    => Payment::whereIn('user_id',
+                      User::where('role', 'customer')->where('state', $_u->state)->pluck('id')
+                  )->where('status', 'pending')->count(),
+    'customer' => Payment::where('user_id', $_u->id)->where('status', 'pending')->count(),
+    default    => 0,
+};
+
+// Deliveries pending (admin/staff only)
+$_pendingDeliveries = match($_u->role) {
+    'admin' => Delivery::where('status', 'pending')->count(),
+    'staff' => Delivery::where('staff_id', $_u->id)->where('status', 'pending')->count(),
+    default => 0,
+};
+@endphp
 <button class="sidebar-close" id="sidebarClose" aria-label="Close navigation">
   <i class="bi bi-x-lg"></i>
 </button>
@@ -34,18 +69,27 @@
   <a href="{{ route('orders.index') }}"
      class="nav-link nav-link-anchor {{ request()->routeIs('orders.*') ? 'active' : '' }}">
     <i class="bi bi-bag nav-icon"></i>Orders
+    @if ($_pendingOrders > 0)
+      <span class="notif-nav-badge">{{ $_pendingOrders > 99 ? '99+' : $_pendingOrders }}</span>
+    @endif
   </a>
 
   @if (in_array($user->role, ['admin', 'staff'], true))
     <a href="{{ route('deliveries.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
       <i class="bi bi-truck nav-icon"></i>Deliveries
+      @if ($_pendingDeliveries > 0)
+        <span class="notif-nav-badge">{{ $_pendingDeliveries > 99 ? '99+' : $_pendingDeliveries }}</span>
+      @endif
     </a>
   @endif
 
   <a href="{{ route('payments.index') }}"
      class="nav-link nav-link-anchor {{ request()->routeIs('payments.*') ? 'active' : '' }}">
     <i class="bi bi-credit-card nav-icon"></i>Payments
+    @if ($_pendingPayments > 0)
+      <span class="notif-nav-badge">{{ $_pendingPayments > 99 ? '99+' : $_pendingPayments }}</span>
+    @endif
   </a>
 
   <a href="{{ route('transactions.index') }}"
@@ -114,7 +158,12 @@
       </div>
     @endif
 
-    @php $custActive = request()->routeIs('admin.customers.index') || request()->routeIs('users.create.customer'); @endphp
+    @php
+      $custActive = request()->routeIs('admin.customers.index')
+                 || request()->routeIs('staff.customers.index')
+                 || request()->routeIs('customers.show')
+                 || request()->routeIs('users.create.customer');
+    @endphp
     <button type="button"
             class="nav-link nav-dropdown-toggle {{ $custActive ? 'active' : '' }}"
             data-target="dd-customers"
@@ -128,6 +177,11 @@
         @if ($user->role === 'admin')
           <a href="{{ route('admin.customers.index') }}"
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.customers.index') ? 'active' : '' }}">
+            <i class="bi bi-shop nav-icon"></i>View Customers
+          </a>
+        @elseif ($user->role === 'staff')
+          <a href="{{ route('staff.customers.index') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('staff.customers.index') || request()->routeIs('customers.show') ? 'active' : '' }}">
             <i class="bi bi-shop nav-icon"></i>View Customers
           </a>
         @endif

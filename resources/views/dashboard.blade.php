@@ -92,46 +92,7 @@
           </form>
 
           {{-- Row 1: Users --}}
-          <section class="kpi-grid" style="margin-bottom: 12px;">
-            <a href="{{ route('admin.staff.index') }}" class="stat-card">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-person-badge"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['staffCount'] }}</h4>
-              <small class="stat-label">Total Staff</small>
-            </a>
-
-            <a href="{{ route('admin.customers.index') }}" class="stat-card info">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-shop"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['customerCount'] }}</h4>
-              <small class="stat-label">Total Customers</small>
-            </a>
-
-            <a href="{{ route('admin.staff.index') }}" class="stat-card warn">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-geo-alt"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['stateCount'] }}</h4>
-              <small class="stat-label">Active States</small>
-            </a>
-
-            <a href="{{ route('admin.inventory.index') }}" class="stat-card info">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-box-seam"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['totalProducts'] }}</h4>
-              <small class="stat-label">Products
-                @if($adminStats['lowStock'] > 0 || $adminStats['outOfStock'] > 0)
-                  &nbsp;<span class="badge-warn">{{ $adminStats['lowStock'] + $adminStats['outOfStock'] }} alert{{ ($adminStats['lowStock'] + $adminStats['outOfStock']) > 1 ? 's' : '' }}</span>
-                @endif
-              </small>
-            </a>
-          </section>
-
-          {{-- Row 2: Orders + Payments --}}
-          <section class="kpi-grid" style="margin-bottom: 12px;">
+          <section class="kpi-grid" style="margin-bottom: 12px;">            
             <a href="{{ route('orders.index') }}" class="stat-card">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-bag-check"></i></span>
@@ -179,10 +140,43 @@
               <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalDebt'], 2) }}</h4>
               <small class="stat-label">Total Debt (Unpaid)</small>
             </a>
-          </section>
 
-          {{-- Row 3: Deliveries --}}
-          <section class="kpi-grid" style="margin-bottom: 16px;">
+            <a href="{{ route('admin.staff.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-person-badge"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['staffCount'] }}</h4>
+              <small class="stat-label">Total Staff</small>
+            </a>
+
+            <a href="{{ route('admin.customers.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-shop"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['customerCount'] }}</h4>
+              <small class="stat-label">Total Customers</small>
+            </a>
+
+            <a href="{{ route('admin.staff.index') }}" class="stat-card warn">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-geo-alt"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['stateCount'] }}</h4>
+              <small class="stat-label">Active States</small>
+            </a>
+
+            <a href="{{ route('admin.inventory.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-box-seam"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['totalProducts'] }}</h4>
+              <small class="stat-label">Products
+                @if($adminStats['lowStock'] > 0 || $adminStats['outOfStock'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['lowStock'] + $adminStats['outOfStock'] }} alert{{ ($adminStats['lowStock'] + $adminStats['outOfStock']) > 1 ? 's' : '' }}</span>
+                @endif
+              </small>
+            </a>
+            
             <a href="{{ route('deliveries.index') }}" class="stat-card">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-truck"></i></span>
@@ -312,7 +306,7 @@
               </small>
             </a>
 
-            <a href="{{ route('transactions.index') }}" class="stat-card success">
+            <a href="{{ route('payments.index') }}" class="stat-card success">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
               </div>
@@ -320,7 +314,7 @@
               <small class="stat-label">Revenue from State</small>
             </a>
 
-            <a href="{{ route('payments.index') }}" class="stat-card danger">
+            <a href="{{ route('orders.index') }}" class="stat-card danger">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
               </div>

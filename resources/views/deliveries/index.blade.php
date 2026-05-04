@@ -63,6 +63,10 @@
              class="ord-tab {{ $active === 'delivered' ? 'active' : '' }}">
             Delivered <span class="ord-tab-count ord-tab-count-delivered">{{ $counts['delivered'] }}</span>
           </a>
+          <a href="{{ route('deliveries.index', ['status' => 'rejected']) }}"
+             class="ord-tab {{ $active === 'rejected' ? 'active' : '' }}">
+            Rejected <span class="ord-tab-count ord-tab-count-rejected">{{ $counts['rejected'] }}</span>
+          </a>
         </div>
 
         {{-- Table --}}

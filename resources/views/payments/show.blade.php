@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payment #{{ $payment->id }} - Country Yoghurt</title>
+    <title>{{ $payment->payment_number ?? 'Payment #'.$payment->id }} - Country Yoghurt</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -23,18 +23,30 @@
 
         <header class="topbar">
           <div class="title-block">
-            <h2>Payment #{{ $payment->id }}</h2>
+            <h2>{{ $payment->payment_number ?? 'Payment #'.$payment->id }}</h2>
             <p>Submitted {{ $payment->created_at->format('d M Y, g:ia') }}</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('payments.index') }}" class="ghost-btn">
+            <a href="{{ route('payments.index') }}" class="ghost-btn no-print">
               <i class="bi bi-arrow-left"></i> All Payments
             </a>
-            <a href="{{ route('orders.show', $payment->order) }}" class="ghost-btn">
+            <a href="{{ route('orders.show', $payment->order) }}" class="ghost-btn no-print">
               <i class="bi bi-bag"></i> View Order
             </a>
+            <button onclick="window.print()" class="ghost-btn no-print">
+              <i class="bi bi-printer"></i> Print
+            </button>
           </div>
         </header>
+
+        {{-- Print header --}}
+        <div class="print-header">
+          <img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt" class="print-logo" />
+          <div class="print-company-info">
+            <h2>Country Yoghurt</h2>
+            <p>Printed {{ now()->format('d M Y, g:ia') }}</p>
+          </div>
+        </div>
 
         {{-- Alerts --}}
         @if (session('status'))
@@ -50,6 +62,12 @@
 
         {{-- Meta grid --}}
         <div class="ord-meta-grid" style="margin-bottom: 16px;">
+          <div class="ord-meta-card">
+            <p class="ord-meta-label">Payment No.</p>
+            <p class="ord-meta-value" style="font-family:'Courier New',monospace; font-size:0.88rem;">
+              {{ $payment->payment_number ?? '—' }}
+            </p>
+          </div>
           <div class="ord-meta-card">
             <p class="ord-meta-label">Status</p>
             <span class="pay-status-badge {{ $payment->status_css }}">

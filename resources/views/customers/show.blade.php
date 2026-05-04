@@ -271,7 +271,7 @@
                     <td>{{ $p->order?->order_number ?? '—' }}</td>
                     <td>&#8358;{{ number_format($p->amount, 2) }}</td>
                     <td>{{ ucwords(str_replace('_', ' ', $p->payment_method)) }}</td>
-                    <td>{{ $p->reference ?: '—' }}</td>
+                    <td>{{ $p->payment_number ?: '—' }}</td>
                     <td>
                       <span class="status-pill
                         {{ match($p->status) {
@@ -327,6 +327,7 @@
                           'pending'   => 'pill-pending',
                           'approved'  => 'pill-approved',
                           'delivered' => 'pill-delivered',
+                          'rejected' => 'pill-rejected',
                           default     => ''
                         } }}">{{ ucfirst($d->status) }}</span>
                     </td>

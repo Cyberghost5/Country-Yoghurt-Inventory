@@ -1984,7 +1984,9 @@ tbody td {
 .dlv-status-pending   { background:#fff8e1; color:#b45309; }
 .dlv-status-approved  { background:#e8f5e9; color:#1a6b45; }
 .dlv-status-delivered { background:#e3f2fd; color:#1565c0; }
+.dlv-status-rejected  { background:#fdecea; color:#c0392b; }
 .ord-tab-count-delivered { background:#dbeafe; color:#1565c0; }
+.ord-tab-count-rejected  { background:#fdecea; color:#c0392b; }
 
 /* =========================================================
    NOTIFICATION BADGES & PAGE
@@ -2429,3 +2431,269 @@ tbody td {
   transition: background 0.15s;
 }
 .impersonate-stop-btn:hover { background: #d97706; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Reports Page
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Section dividers */
+.rpt-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary, #3a6b35);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary-light, #e8f4e8);
+}
+
+/* Two-column grid for report cards */
+.rpt-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .rpt-two-col { grid-template-columns: 1fr; }
+}
+
+/* Report card */
+.rpt-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.rpt-card-header {
+  padding: 12px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #444;
+  background: #f9f9f7;
+  border-bottom: 1px solid #ebebeb;
+}
+.rpt-card-body {
+  padding: 16px 18px;
+}
+
+/* Table inside report cards */
+.rpt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+.rpt-table th {
+  padding: 9px 12px;
+  background: #f4f4f2;
+  color: #555;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+.rpt-table td {
+  padding: 9px 12px;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.rpt-table tbody tr:last-child td { border-bottom: none; }
+.rpt-table tbody tr:hover { background: #fafaf8; }
+.rpt-tfoot td {
+  padding: 10px 12px;
+  background: #f4f4f2;
+  border-top: 2px solid #ddd;
+}
+.ta-right { text-align: right !important; }
+
+/* Bar charts */
+.rpt-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px 60px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+}
+.rpt-bar-label {
+  color: #444;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rpt-bar-track {
+  background: #f0f0ec;
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+}
+.rpt-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
+.rpt-bar-pending   { background: #f59e0b; }
+.rpt-bar-approved  { background: #3b82f6; }
+.rpt-bar-delivered { background: #22c55e; }
+.rpt-bar-rejected  { background: #ef4444; }
+.rpt-bar-count {
+  color: #333;
+  font-weight: 600;
+  text-align: right;
+}
+.rpt-bar-pct {
+  color: #888;
+  font-size: 0.78rem;
+}
+.rpt-bar-total {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ebebeb;
+  font-size: 0.82rem;
+  color: #555;
+}
+
+/* Empty state */
+.rpt-empty {
+  color: #999;
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
+}
+
+/* Rank column */
+.rpt-rank {
+  font-weight: 700;
+  color: #aaa;
+  font-size: 0.78rem;
+  width: 24px;
+}
+
+/* Debt cell */
+.rpt-debt-cell {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* Muted sub-text */
+.rpt-muted {
+  color: #999;
+  font-size: 0.78rem;
+}
+
+/* Link */
+.rpt-link {
+  color: var(--primary, #3a6b35);
+  text-decoration: none;
+  font-weight: 500;
+}
+.rpt-link:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════
+   PRINT
+═══════════════════════════════════════════════════ */
+
+/* Print header: hidden on screen, shown when printing */
+.print-header { display: none; }
+
+@media print {
+  /* ── Hide chrome ── */
+  .sidebar,
+  .sidebar-backdrop,
+  .mobile-topbar,
+  .desktop-bell-btn,
+  .top-actions,
+  .ord-action-bar,
+  .inv-modal-overlay,
+  .lp-success,
+  .lp-error,
+  .no-print { display: none !important; }
+
+  /* ── Full-width layout ── */
+  .app-shell { display: block !important; }
+
+  .main-content {
+    padding: 0 !important;
+    min-height: unset !important;
+    background: #fff !important;
+  }
+
+  .topbar { margin-bottom: 12px !important; }
+
+  /* ── Print header ── */
+  .print-header {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #1d086c;
+  }
+
+  .print-logo {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+  }
+
+  .print-company-info h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1d086c;
+  }
+
+  .print-company-info p {
+    margin: 3px 0 0;
+    font-size: 0.78rem;
+    color: #666;
+  }
+
+  /* ── Tables ── */
+  .table-scroll { overflow: visible !important; }
+
+  table {
+    min-width: unset !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead th,
+  tbody td {
+    border: 1px solid #ccc !important;
+    padding: 7px 9px !important;
+    font-size: 0.78rem !important;
+  }
+
+  thead th {
+    background: #f3f0e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Preserve badge colours ── */
+  .ord-status-badge,
+  .pay-status-badge,
+  .dlv-status-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border: 1px solid #ccc !important;
+  }
+
+  /* ── Cards ── */
+  .card {
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+  }
+
+  .ord-meta-grid { grid-template-columns: repeat(3, 1fr) !important; }
+
+  /* ── Page settings ── */
+  @page { margin: 16mm 14mm; }
+}

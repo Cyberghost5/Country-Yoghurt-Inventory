@@ -72,7 +72,7 @@
             <table class="inv-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th>Payment No.</th>
                   @if ($user->role === 'admin')
                     <th>Submitted By</th>
                   @endif
@@ -87,7 +87,7 @@
               <tbody>
                 @forelse ($payments as $payment)
                   <tr>
-                    <td><span class="ord-number">{{ $payment->id }}</span></td>
+                    <td><span class="ord-number">{{ $payment->payment_number ?? '#'.$payment->id }}</span></td>
                     @if ($user->role === 'admin')
                       <td>
                         <span class="ord-placer">{{ $payment->user->name ?? '-' }}</span>

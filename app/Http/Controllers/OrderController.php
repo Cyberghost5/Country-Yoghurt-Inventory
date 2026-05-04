@@ -19,9 +19,14 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $query = Order::with(['user', 'items'])->latest();
+        $query = Order::with(['user', 'items', 'payments' => fn ($q) => $q->where('status', 'approved')])->latest();
 
-        if ($user->role !== 'admin') {
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            $query->whereIn('user_id', $stateCustomerIds);
+        } elseif ($user->role === 'customer') {
             $query->where('user_id', $user->id);
         }
 
@@ -31,12 +36,24 @@ class OrderController extends Controller
 
         $orders = $query->paginate(20)->withQueryString();
 
+        // Reusable scope for counts
+        $scoped = function ($q) use ($user) {
+            if ($user->role === 'staff') {
+                $ids = User::where('role', 'customer')->where('state', $user->state)->pluck('id');
+                return $q->whereIn('user_id', $ids);
+            }
+            if ($user->role === 'customer') {
+                return $q->where('user_id', $user->id);
+            }
+            return $q;
+        };
+
         $counts = [
-            'all'       => Order::when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))->count(),
-            'pending'   => Order::where('status', 'pending')->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))->count(),
-            'approved'  => Order::where('status', 'approved')->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))->count(),
-            'rejected'  => Order::where('status', 'rejected')->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))->count(),
-            'delivered' => Order::where('status', 'delivered')->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))->count(),
+            'all'       => $scoped(Order::query())->count(),
+            'pending'   => $scoped(Order::where('status', 'pending'))->count(),
+            'approved'  => $scoped(Order::where('status', 'approved'))->count(),
+            'rejected'  => $scoped(Order::where('status', 'rejected'))->count(),
+            'delivered' => $scoped(Order::where('status', 'delivered'))->count(),
         ];
 
         return view('orders.index', compact('user', 'orders', 'counts'));
@@ -212,8 +229,17 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'admin' && $order->user_id !== $user->id) {
+        if ($user->role === 'customer' && $order->user_id !== $user->id) {
             abort(403);
+        }
+
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            if (!$stateCustomerIds->contains($order->user_id)) {
+                abort(403);
+            }
         }
 
         $order->load(['user', 'items', 'approvedBy', 'payments', 'deliveries.staff']);

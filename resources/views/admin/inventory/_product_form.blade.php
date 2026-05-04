@@ -77,7 +77,7 @@
     <label class="span-2">
       Supplier Name
       <input type="text" name="supplier_name"
-             value="{{ old('supplier_name', $product->supplier_name ?? '') }}"
+             value="{{ old('supplier_name', $product->supplier_name ?? 'Country Yoghurt Ltd') }}"
              placeholder="e.g. Bauchi Dairy Ltd" />
     </label>
 

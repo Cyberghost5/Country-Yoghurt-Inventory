@@ -97,6 +97,13 @@ $_pendingDeliveries = match($_u->role) {
     <i class="bi bi-clock-history nav-icon"></i>Transactions
   </a>
 
+  @if ($user->role === 'admin')
+    <a href="{{ route('admin.reports.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+      <i class="bi bi-bar-chart-line nav-icon"></i>Reports
+    </a>
+  @endif
+
   @php $notifCount = auth()->user()?->unreadNotifications()->count() ?? 0; @endphp
   <a href="{{ route('notifications.index') }}"
      class="nav-link nav-link-anchor {{ request()->routeIs('notifications.*') ? 'active' : '' }}">

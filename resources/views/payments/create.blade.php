@@ -57,79 +57,113 @@
         <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" id="paymentForm">
           @csrf
 
-          {{-- Customer selector (staff / admin only) --}}
-          @if (in_array($user->role, ['admin', 'staff']))
-          <section class="card" style="margin-bottom: 16px;">
-            <h3 class="ord-section-title" style="margin-bottom: 16px;">
-              <i class="bi bi-person"></i> Customer
-            </h3>
-            <div class="pay-form-field">
-              <label class="inv-field-label" for="customer_id">
-                Payment on behalf of <span class="req">*</span>
-              </label>
-              @if ($customers->isEmpty())
-                <p style="font-size:0.85rem; color:var(--text-soft); margin:0;">
-                  No customers found {{ $user->role === 'staff' ? 'in your state' : '' }}.
-                </p>
-              @else
-                <select id="customer_id" name="customer_id" class="inv-select" required>
-                  <option value="">- Select customer -</option>
-                  @foreach ($customers as $c)
-                    <option value="{{ $c->id }}">
-                      {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
-                    </option>
-                  @endforeach
-                </select>
-              @endif
-            </div>
-          </section>
-          @endif
+          {{-- When order is pre-selected: skip all selectors, just show locked summary --}}
+          @if ($order)
+            <input type="hidden" name="order_id" value="{{ $order->id }}" />
+            @php $preRemaining = $order->remainingAmount(); @endphp
+            <section class="card" style="margin-bottom: 16px; padding: 16px 20px;">
+              <h3 class="ord-section-title" style="margin-bottom: 14px;">
+                <i class="bi bi-bag-check"></i> Order Summary
+              </h3>
+              <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:12px 24px;">
+                <div>
+                  <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Order Number</p>
+                  <p style="font-weight:600; margin:0;">{{ $order->order_number }}</p>
+                </div>
+                <div>
+                  <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Customer</p>
+                  <p style="font-weight:600; margin:0;">{{ $order->user->name ?? '—' }}</p>
+                </div>
+                <div>
+                  <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Order Total</p>
+                  <p style="font-weight:600; margin:0;">&#8358;{{ number_format($order->total_amount, 2) }}</p>
+                </div>
+                <div>
+                  <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Already Paid</p>
+                  <p style="font-weight:600; color:#16a34a; margin:0;">&#8358;{{ number_format($order->paidAmount(), 2) }}</p>
+                </div>
+                <div>
+                  <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Remaining Balance</p>
+                  <p style="font-weight:700; color:#dc2626; margin:0;">&#8358;{{ number_format($preRemaining, 2) }}</p>
+                </div>
+              </div>
+            </section>
 
-          <section class="card" style="margin-bottom: 16px;">
-            <h3 class="ord-section-title" style="margin-bottom: 16px;">
-              <i class="bi bi-bag"></i> Link to Order
-              <small style="font-weight:400; font-size:0.78rem; color:var(--text-soft);">(optional)</small>
-            </h3>
-            <div class="pay-form-field">
-              <label class="inv-field-label" for="order_id">Order</label>
-              @if (in_array($user->role, ['admin', 'staff']))
-                <select id="order_id" name="order_id" class="inv-select">
-                  <option value="">- Select a customer first -</option>
-                </select>
-              @else
-                <select id="order_id" name="order_id" class="inv-select">
-                  <option value="">- No specific order (use Reason below) -</option>
-                  @foreach ($payableOrders as $o)
-                    @php $remaining = round((float)$o->total_amount - $o->paidAmount(), 2); @endphp
-                    <option value="{{ $o->id }}"
-                            data-amount="{{ number_format((float)$o->total_amount, 2, '.', '') }}"
-                            data-remaining="{{ number_format($remaining, 2, '.', '') }}"
-                            data-number="{{ $o->order_number }}"
-                            {{ (old('order_id', $order?->id) == $o->id) ? 'selected' : '' }}>
-                      {{ $o->order_number }} - ₦{{ number_format($remaining, 2) }} remaining ({{ ucfirst($o->status) }})
-                    </option>
-                  @endforeach
-                </select>
-              @endif
-              @error('order_id')
-                <span class="inv-field-error">{{ $message }}</span>
-              @enderror
-            </div>
-            <div id="orderSummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
-              <div class="pay-summary-row">
-                <span>Order</span>
-                <strong id="summaryNumber">-</strong>
+          @else
+            {{-- Customer selector (staff / admin only, no pre-selected order) --}}
+            @if (in_array($user->role, ['admin', 'staff']))
+            <section class="card" style="margin-bottom: 16px;">
+              <h3 class="ord-section-title" style="margin-bottom: 16px;">
+                <i class="bi bi-person"></i> Customer
+              </h3>
+              <div class="pay-form-field">
+                <label class="inv-field-label" for="customer_id">
+                  Payment on behalf of <span class="req">*</span>
+                </label>
+                @if ($customers->isEmpty())
+                  <p style="font-size:0.85rem; color:var(--text-soft); margin:0;">
+                    No customers found {{ $user->role === 'staff' ? 'in your state' : '' }}.
+                  </p>
+                @else
+                  <select id="customer_id" name="customer_id" class="inv-select" required>
+                    <option value="">- Select customer -</option>
+                    @foreach ($customers as $c)
+                      <option value="{{ $c->id }}">
+                        {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                      </option>
+                    @endforeach
+                  </select>
+                @endif
               </div>
-              <div class="pay-summary-row">
-                <span>Order Total</span>
-                <strong id="summaryAmount">-</strong>
+            </section>
+            @endif
+
+            <section class="card" style="margin-bottom: 16px;">
+              <h3 class="ord-section-title" style="margin-bottom: 16px;">
+                <i class="bi bi-bag"></i> Link to Order
+                <small style="font-weight:400; font-size:0.78rem; color:var(--text-soft);">(optional)</small>
+              </h3>
+              <div class="pay-form-field">
+                <label class="inv-field-label" for="order_id">Order</label>
+                @if (in_array($user->role, ['admin', 'staff']))
+                  <select id="order_id" name="order_id" class="inv-select">
+                    <option value="">- Select a customer first -</option>
+                  </select>
+                @else
+                  <select id="order_id" name="order_id" class="inv-select">
+                    <option value="">- No specific order (use Reason below) -</option>
+                    @foreach ($payableOrders as $o)
+                      @php $remaining = round((float)$o->total_amount - $o->paidAmount(), 2); @endphp
+                      <option value="{{ $o->id }}"
+                              data-amount="{{ number_format((float)$o->total_amount, 2, '.', '') }}"
+                              data-remaining="{{ number_format($remaining, 2, '.', '') }}"
+                              data-number="{{ $o->order_number }}"
+                              {{ (old('order_id') == $o->id) ? 'selected' : '' }}>
+                        {{ $o->order_number }} - ₦{{ number_format($remaining, 2) }} remaining ({{ ucfirst($o->status) }})
+                      </option>
+                    @endforeach
+                  </select>
+                @endif
+                @error('order_id')
+                  <span class="inv-field-error">{{ $message }}</span>
+                @enderror
               </div>
-              <div class="pay-summary-row pay-summary-total">
-                <span>Remaining Balance</span>
-                <strong id="summaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
+              <div id="orderSummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
+                <div class="pay-summary-row">
+                  <span>Order</span>
+                  <strong id="summaryNumber">-</strong>
+                </div>
+                <div class="pay-summary-row">
+                  <span>Order Total</span>
+                  <strong id="summaryAmount">-</strong>
+                </div>
+                <div class="pay-summary-row pay-summary-total">
+                  <span>Remaining Balance</span>
+                  <strong id="summaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          @endif
 
           <section class="card" style="margin-bottom: 16px;">
             <h3 class="ord-section-title" style="margin-bottom: 16px;">
@@ -140,7 +174,7 @@
                 <label class="inv-field-label" for="amount">Amount Paid (?) <span class="req">*</span></label>
                 <input type="number" id="amount" name="amount" step="0.01" min="0.01"
                        class="inv-field-input {{ $errors->has('amount') ? 'is-invalid' : '' }}"
-                       value="{{ old('amount', $order ? number_format($order->total_amount, 2, '.', '') : '') }}"
+                       value="{{ old('amount', isset($preRemaining) ? number_format($preRemaining, 2, '.', '') : '') }}"
                        required />
                 @error('amount') <span class="inv-field-error">{{ $message }}</span> @enderror
               </div>

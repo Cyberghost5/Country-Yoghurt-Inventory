@@ -90,7 +90,8 @@
                   @if ($user->role === 'admin')<th>Placed By</th>@endif
                   <th>Date</th>
                   <th>Items</th>
-                  <th>Total (₦)</th>
+                  <th>Total (&#8358;)</th>
+                  <th>Remaining (&#8358;)</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -110,6 +111,14 @@
                     <td>{{ $order->created_at->format('d M Y, g:ia') }}</td>
                     <td>{{ $order->items->count() }}</td>
                     <td class="ord-amount">{{ number_format($order->total_amount, 2) }}</td>
+                    <td class="ord-amount">
+                      @php $rem = max(0, (float)$order->total_amount - $order->payments->sum('amount')); @endphp
+                      @if ($rem <= 0)
+                        <span style="color:#16a34a; font-weight:600;">Paid</span>
+                      @else
+                        <span style="color:#dc2626; font-weight:600;">{{ number_format($rem, 2) }}</span>
+                      @endif
+                    </td>
                     <td>
                       <span class="ord-status-badge {{ $order->status_css }}">
                         {{ $order->status_label }}
@@ -123,7 +132,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="{{ $user->role === 'admin' ? 7 : 6 }}" class="inv-empty-row">
+                      <td colspan="{{ $user->role === 'admin' ? 8 : 7 }}" class="inv-empty-row">
                       <i class="bi bi-inbox" style="font-size:1.4rem;"></i>
                       <p>No orders found.</p>
                     </td>

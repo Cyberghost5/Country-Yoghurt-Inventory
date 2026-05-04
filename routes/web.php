@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\AdminPagesController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\NotificationController;
@@ -28,6 +29,7 @@ Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name(
 /* ── Protected ── */
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/admin/staff', [AdminPagesController::class, 'staffIndex'])->name('admin.staff.index');
     Route::get('/admin/admins', [AdminPagesController::class, 'adminIndex'])->name('admin.admins.index');
     Route::get('/admin/customers', [AdminPagesController::class, 'customerIndex'])->name('admin.customers.index');
@@ -65,6 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/deliveries', [DeliveryController::class, 'store'])->name('deliveries.store');
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
     Route::post('/deliveries/{delivery}/approve', [DeliveryController::class, 'approve'])->name('deliveries.approve');
+    Route::post('/deliveries/{delivery}/reject', [DeliveryController::class, 'reject'])->name('deliveries.reject');
     Route::post('/deliveries/{delivery}/deliver', [DeliveryController::class, 'markDelivered'])->name('deliveries.deliver');
 
     /* ── Payments ── */

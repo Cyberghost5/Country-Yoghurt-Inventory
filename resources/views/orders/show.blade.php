@@ -29,16 +29,28 @@
             <p>Placed on {{ $order->created_at->format('d M Y, g:ia') }}</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('orders.index') }}" class="ghost-btn">
+            <a href="{{ route('orders.index') }}" class="ghost-btn no-print">
               <i class="bi bi-arrow-left"></i> All Orders
             </a>
             @if (in_array($user->role, ['staff', 'customer'], true))
-              <a href="{{ route('orders.create') }}" class="primary-btn">
+              <a href="{{ route('orders.create') }}" class="primary-btn no-print">
                 <i class="bi bi-plus-lg"></i> New Order
               </a>
             @endif
+            <button onclick="window.print()" class="ghost-btn no-print">
+              <i class="bi bi-printer"></i> Print
+            </button>
           </div>
         </header>
+
+        {{-- Print header --}}
+        <div class="print-header">
+          <img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt" class="print-logo" />
+          <div class="print-company-info">
+            <h2>Country Yoghurt</h2>
+            <p>Printed {{ now()->format('d M Y, g:ia') }}</p>
+          </div>
+        </div>
 
         {{-- Alerts --}}
         @if (session('status'))
@@ -53,6 +65,10 @@
         @endif
 
         {{-- ── Order meta ── --}}
+        @php
+          $totalPaid      = $order->payments->where('status', 'approved')->sum('amount');
+          $totalRemaining = max(0, (float)$order->total_amount - $totalPaid);
+        @endphp
         <div class="ord-meta-grid">
           <div class="ord-meta-card">
             <p class="ord-meta-label">Status</p>
@@ -67,7 +83,21 @@
           </div>
           <div class="ord-meta-card">
             <p class="ord-meta-label">Total Amount</p>
-            <p class="ord-meta-value ord-amount">₦{{ number_format($order->total_amount, 2) }}</p>
+            <p class="ord-meta-value ord-amount">&#8358;{{ number_format($order->total_amount, 2) }}</p>
+          </div>
+          <div class="ord-meta-card">
+            <p class="ord-meta-label">Total Paid</p>
+            <p class="ord-meta-value" style="color:{{ $totalPaid > 0 ? '#16a34a' : 'inherit' }}">
+              &#8358;{{ number_format($totalPaid, 2) }}
+            </p>
+          </div>
+          <div class="ord-meta-card">
+            <p class="ord-meta-label">Balance Remaining</p>
+            @if ($totalRemaining <= 0)
+              <p class="ord-meta-value" style="color:#16a34a;">&#10003; Fully Paid</p>
+            @else
+              <p class="ord-meta-value" style="color:#dc2626;">&#8358;{{ number_format($totalRemaining, 2) }}</p>
+            @endif
           </div>
           @if ($order->approved_at)
             <div class="ord-meta-card">
@@ -125,6 +155,61 @@
           </div>
         </section>
 
+        {{-- ── Payment section ── --}}
+        @if (in_array($order->status, ['approved', 'delivered'], true))
+          <section class="card table-card" style="margin-bottom: 16px;">
+            <div class="card-head">
+              <div>
+                <h3><i class="bi bi-credit-card" style="margin-right:6px;"></i>Payments</h3>
+                <span>{{ $order->payments->count() }} payment(s) &middot; &#8358;{{ number_format($totalPaid, 2) }} approved</span>
+              </div>
+              @if (in_array($user->role, ['staff', 'customer'], true) && $totalRemaining > 0)
+                <a href="{{ route('payments.create', ['order_id' => $order->id]) }}" class="primary-btn">
+                  <i class="bi bi-send"></i> Submit Payment
+                </a>
+              @endif
+            </div>
+            @if ($order->payments->isNotEmpty())
+              <div class="table-scroll">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Reference</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach ($order->payments->sortByDesc('created_at') as $pmt)
+                      <tr>
+                        <td><strong>&#8358;{{ number_format($pmt->amount, 2) }}</strong></td>
+                        <td>{{ ucwords(str_replace('_', ' ', $pmt->payment_method)) }}</td>
+                        <td>{{ $pmt->payment_number ?: '—' }}</td>
+                        <td>
+                          <span class="pay-status-badge {{ $pmt->status_css }}">{{ $pmt->status_label }}</span>
+                        </td>
+                        <td>{{ optional($pmt->created_at)->format('d M Y, g:ia') }}</td>
+                        <td>
+                          <a href="{{ route('payments.show', $pmt) }}" class="ua-btn ua-view">
+                            <i class="bi bi-eye"></i> View
+                          </a>
+                        </td>
+                      </tr>
+                    @endforeach
+                  </tbody>
+                </table>
+              </div>
+            @else
+              <p style="padding: 16px; font-size:0.87rem; color:var(--text-soft); margin:0;">
+                No payments recorded yet.
+              </p>
+            @endif
+          </section>
+        @endif
+
         {{-- ── Staff: Delivery section ── --}}
         @if ($user->role === 'staff' && $order->status === 'approved')
           @php $latestDelivery = $order->deliveries->sortByDesc('created_at')->first(); @endphp
@@ -138,6 +223,11 @@
                 <a href="{{ route('deliveries.show', $latestDelivery) }}" class="ghost-btn">
                   <i class="bi bi-eye"></i> View Delivery
                 </a>
+                @if ($latestDelivery->status === 'rejected')
+                  <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
+                    <i class="bi bi-truck"></i> Schedule Delivery
+                  </a>
+                @endif
               </div>
             </section>
           @else
@@ -154,38 +244,7 @@
           @endif
         @endif
 
-        {{-- ── Payment section (non-admin) ── --}}
-        @if (in_array($user->role, ['staff', 'customer'], true) && in_array($order->status, ['approved', 'delivered'], true))
-          @php
-            $activePayment = $order->payments->whereIn('status', ['pending', 'approved'])->first();
-          @endphp
-          @if ($activePayment)
-            <section class="card ord-action-bar" style="border-left: 4px solid #1565c0;">
-              <p class="ord-action-title">
-                <i class="bi bi-credit-card"></i> Payment
-              </p>
-              <div class="ord-action-btns">
-                <span class="pay-status-badge {{ $activePayment->status_css }}">
-                  {{ $activePayment->status_label }}
-                </span>
-                <a href="{{ route('payments.show', $activePayment) }}" class="ghost-btn">
-                  <i class="bi bi-eye"></i> View Payment
-                </a>
-              </div>
-            </section>
-          @else
-            <section class="card ord-action-bar">
-              <p class="ord-action-title">
-                <i class="bi bi-credit-card"></i> Payment
-              </p>
-              <div class="ord-action-btns">
-                <a href="{{ route('payments.create', ['order_id' => $order->id]) }}" class="primary-btn">
-                  <i class="bi bi-send"></i> Submit Payment
-                </a>
-              </div>
-            </section>
-          @endif
-        @endif
+
 
         {{-- ── Admin actions ── --}}
         @if ($user->role === 'admin')
@@ -264,11 +323,15 @@
                       <i class="bi bi-check2-all"></i> Mark as Delivered
                     </button>
                   </form>
+                @elseif ($latestDelivery->status === 'rejected')
+                  <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
+                    <i class="bi bi-truck"></i> Schedule Delivery
+                  </a>
                 @endif
               @else
                 <span style="font-size:0.85rem; color:var(--text-soft);">No delivery scheduled yet</span>
-                <a href="{{ route('deliveries.index') }}" class="ghost-btn">
-                  <i class="bi bi-truck"></i> View Deliveries
+                <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
+                  <i class="bi bi-truck"></i> Schedule Delivery
                 </a>
               @endif
             </div>

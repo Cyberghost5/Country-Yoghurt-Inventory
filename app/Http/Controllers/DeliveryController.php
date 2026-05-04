@@ -18,7 +18,10 @@ class DeliveryController extends Controller
         $query = Delivery::with(['order', 'staff'])->latest();
 
         if ($user->role === 'staff') {
-            $query->where('staff_id', $user->id);
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            $query->whereHas('order', fn ($q) => $q->whereIn('user_id', $stateCustomerIds));
         } elseif ($user->role !== 'admin') {
             abort(403);
         }
@@ -31,7 +34,10 @@ class DeliveryController extends Controller
 
         $baseQuery = Delivery::query();
         if ($user->role === 'staff') {
-            $baseQuery->where('staff_id', $user->id);
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            $baseQuery->whereHas('order', fn ($q) => $q->whereIn('user_id', $stateCustomerIds));
         }
 
         $counts = [
@@ -39,6 +45,7 @@ class DeliveryController extends Controller
             'pending'   => (clone $baseQuery)->where('status', 'pending')->count(),
             'approved'  => (clone $baseQuery)->where('status', 'approved')->count(),
             'delivered' => (clone $baseQuery)->where('status', 'delivered')->count(),
+            'rejected'  => (clone $baseQuery)->where('status', 'rejected')->count(),
         ];
 
         return view('deliveries.index', compact('user', 'deliveries', 'counts'));
@@ -54,7 +61,7 @@ class DeliveryController extends Controller
         $customers = User::where('role', 'customer')
             ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
             ->orderBy('name')
-            ->get(['id', 'name', 'shop_name', 'state']);
+            ->get(['id', 'name', 'shop_name', 'state', 'lga', 'address']);
 
         // Load approved orders (initial set — JS will filter by selected customer)
         $approvedOrders = Order::where('status', 'approved')
@@ -66,7 +73,7 @@ class DeliveryController extends Controller
         // Pre-selected order from query string
         $order = null;
         if ($orderId = $request->query('order_id')) {
-            $order = Order::find($orderId);
+            $order = Order::with('user')->find($orderId);
             if ($order && $order->status !== 'approved') {
                 $order = null;
             }
@@ -84,7 +91,7 @@ class DeliveryController extends Controller
         $data = $request->validate([
             'order_id'         => 'required|integer|exists:orders,id',
             'delivery_address' => 'required|string|max:500',
-            'scheduled_at'     => 'nullable|date|after_or_equal:today',
+            'scheduled_at'     => 'required|date|after_or_equal:today',
             'notes'            => 'nullable|string|max:1000',
         ]);
 
@@ -129,10 +136,18 @@ class DeliveryController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) {
+        if ($user->role === 'customer') {
             abort(403);
-        } elseif ($user->role === 'customer') {
-            abort(403);
+        }
+
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            $delivery->loadMissing('order');
+            if (!$stateCustomerIds->contains($delivery->order?->user_id)) {
+                abort(403);
+            }
         }
 
         $delivery->load(['order.user', 'order.items', 'staff', 'approvedBy']);
@@ -162,6 +177,35 @@ class DeliveryController extends Controller
 
         return redirect()->route('deliveries.show', $delivery)
             ->with('status', "Delivery approved and marked as out for delivery.");
+    }
+
+    /* ── Reject (admin only) ── */
+    public function reject(Request $request, Delivery $delivery)
+    {
+        $user = $request->user();
+        if ($user->role !== 'admin') abort(403);
+
+        if ($delivery->status !== 'pending') {
+            return redirect()->route('deliveries.show', $delivery)
+                ->with('error', 'Only pending deliveries can be rejected.');
+        }
+
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $delivery->update([
+            'status'           => 'rejected',
+            'rejection_reason' => $request->input('rejection_reason'),
+        ]);
+
+        $delivery->load('order.user', 'staff');
+        if ($delivery->staff) {
+            $delivery->staff->notify(new DeliveryNotification('rejected', $delivery));
+        }
+
+        return redirect()->route('deliveries.show', $delivery)
+            ->with('status', 'Delivery has been rejected.');
     }
 
     /* ── Mark Delivered (admin only) ── */

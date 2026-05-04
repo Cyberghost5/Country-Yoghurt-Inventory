@@ -18,7 +18,12 @@ class PaymentController extends Controller
         $user  = $request->user();
         $query = Payment::with(['order', 'user'])->latest();
 
-        if ($user->role !== 'admin') {
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            $query->whereIn('user_id', $stateCustomerIds);
+        } elseif ($user->role === 'customer') {
             $query->where('user_id', $user->id);
         }
 
@@ -28,9 +33,11 @@ class PaymentController extends Controller
 
         $payments = $query->paginate(20)->withQueryString();
 
-        $base = $user->role !== 'admin'
-            ? Payment::where('user_id', $user->id)
-            : Payment::query();
+        $base = match ($user->role) {
+            'staff'    => Payment::whereIn('user_id', User::where('role', 'customer')->where('state', $user->state)->pluck('id')),
+            'customer' => Payment::where('user_id', $user->id),
+            default    => Payment::query(),
+        };
 
         $counts = [
             'all'      => (clone $base)->count(),
@@ -153,6 +160,7 @@ class PaymentController extends Controller
         $payment = Payment::create([
             'order_id'       => $order?->id,
             'user_id'        => $paymentOwnerId,
+            'payment_number' => $this->generatePaymentNumber(),
             'amount'         => round((float) $request->input('amount'), 2),
             'payment_method' => $request->input('payment_method'),
             'reference'      => $request->input('reference'),
@@ -172,13 +180,29 @@ class PaymentController extends Controller
             ->with('status', 'Payment submitted. Awaiting admin approval.');
     }
 
+    private function generatePaymentNumber(): string
+    {
+        $date  = now()->format('Ymd');
+        $count = Payment::whereDate('created_at', today())->count();
+        return 'PAY-' . $date . '-' . str_pad($count + 1, 5, '0', STR_PAD_LEFT);
+    }
+
     /* ── Show ── */
     public function show(Request $request, Payment $payment)
     {
         $user = $request->user();
 
-        if ($user->role !== 'admin' && $payment->user_id !== $user->id) {
+        if ($user->role === 'customer' && $payment->user_id !== $user->id) {
             abort(403);
+        }
+
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            if (!$stateCustomerIds->contains($payment->user_id)) {
+                abort(403);
+            }
         }
 
         $payment->load(['order', 'user', 'reviewer']);

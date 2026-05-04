@@ -25,16 +25,28 @@
             <p>Scheduled on {{ $delivery->created_at->format('d M Y, g:ia') }}</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('deliveries.index') }}" class="ghost-btn">
+            <a href="{{ route('deliveries.index') }}" class="ghost-btn no-print">
               <i class="bi bi-arrow-left"></i> All Deliveries
             </a>
             @if ($delivery->order)
-              <a href="{{ route('orders.show', $delivery->order) }}" class="ghost-btn">
+              <a href="{{ route('orders.show', $delivery->order) }}" class="ghost-btn no-print">
                 <i class="bi bi-bag"></i> View Order
               </a>
             @endif
+            <button onclick="window.print()" class="ghost-btn no-print">
+              <i class="bi bi-printer"></i> Print
+            </button>
           </div>
         </header>
+
+        {{-- Print header --}}
+        <div class="print-header">
+          <img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt" class="print-logo" />
+          <div class="print-company-info">
+            <h2>Country Yoghurt</h2>
+            <p>Printed {{ now()->format('d M Y, g:ia') }}</p>
+          </div>
+        </div>
 
         {{-- Alerts --}}
         @if (session('status'))
@@ -114,6 +126,16 @@
           </p>
         </div>
 
+        {{-- Rejection reason --}}
+        @if ($delivery->status === 'rejected' && $delivery->rejection_reason)
+          <div class="card" style="margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid var(--danger);">
+            <p class="ord-meta-label" style="margin-bottom: 6px; color: var(--danger);">
+              <i class="bi bi-exclamation-circle"></i> Rejection Reason
+            </p>
+            <p style="margin: 0; font-size: 0.88rem; color: var(--text-main);">{{ $delivery->rejection_reason }}</p>
+          </div>
+        @endif
+
         {{-- Notes --}}
         @if ($delivery->notes)
           <div class="card" style="margin-bottom: 16px; padding: 14px 16px;">
@@ -173,8 +195,41 @@
                     <i class="bi bi-check-lg"></i> Approve Delivery
                   </button>
                 </form>
+                <button type="button" class="ghost-btn danger-ghost" id="openRejectBtn">
+                  <i class="bi bi-x-lg"></i> Reject Delivery
+                </button>
               </div>
             </section>
+
+            {{-- Reject modal --}}
+            <div class="inv-modal-overlay" id="rejectModal">
+              <div class="inv-modal inv-modal-sm">
+                <div class="inv-modal-head">
+                  <h3><i class="bi bi-x-circle" style="color:var(--danger)"></i> Reject Delivery</h3>
+                  <button class="inv-modal-close" onclick="closeRejectModal()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+                <form method="POST" action="{{ route('deliveries.reject', $delivery) }}">
+                  @csrf
+                  <div class="inv-modal-body">
+                    <p style="margin-bottom: 12px; font-size:0.88rem;">
+                      Rejecting delivery for <strong>{{ $delivery->order->order_number ?? '#'.$delivery->id }}</strong>.
+                      You can optionally provide a reason.
+                    </p>
+                    <label class="inv-field-label" for="rejection_reason">Reason (optional)</label>
+                    <textarea name="rejection_reason" id="rejection_reason"
+                              class="inv-field-input" rows="3"
+                              placeholder="e.g. Address issue, customer unavailable…"
+                              style="resize:vertical; width:100%;"></textarea>
+                  </div>
+                  <div class="inv-modal-footer">
+                    <button type="button" class="ghost-btn" onclick="closeRejectModal()">Cancel</button>
+                    <button type="submit" class="primary-btn" style="background:var(--danger)">Reject</button>
+                  </div>
+                </form>
+              </div>
+            </div>
           @elseif ($delivery->status === 'approved')
             <section class="card ord-action-bar">
               <p class="ord-action-title">
@@ -208,6 +263,23 @@
         if (close)    close.addEventListener('click', closeSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
+
+      // Reject modal
+      var rejectModal  = document.getElementById('rejectModal');
+      var openRejectBtn = document.getElementById('openRejectBtn');
+      function closeRejectModal() {
+        if (rejectModal) { rejectModal.classList.remove('active'); document.body.style.overflow = ''; }
+      }
+      if (openRejectBtn) {
+        openRejectBtn.addEventListener('click', function() {
+          if (rejectModal) { rejectModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
+        });
+      }
+      if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) {
+          if (e.target === rejectModal) closeRejectModal();
+        });
+      }
     </script>
   </body>
 </html>

@@ -14,6 +14,7 @@ class Delivery extends Model
         'scheduled_at',
         'notes',
         'status',
+        'rejection_reason',
         'approved_by',
         'approved_at',
         'delivered_at',
@@ -50,6 +51,7 @@ class Delivery extends Model
             'pending'   => 'Pending Approval',
             'approved'  => 'Out for Delivery',
             'delivered' => 'Delivered',
+            'rejected'  => 'Rejected',
             default     => ucfirst($this->status),
         };
     }
@@ -60,6 +62,7 @@ class Delivery extends Model
             'pending'   => 'dlv-status-pending',
             'approved'  => 'dlv-status-approved',
             'delivered' => 'dlv-status-delivered',
+            'rejected'  => 'dlv-status-rejected',
             default     => '',
         };
     }

@@ -12,6 +12,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\SmsController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +90,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/users/{user}', [UserManagementController::class, 'updateUser'])->name('users.update');
     Route::post('/users/{user}/impersonate', [UserManagementController::class, 'impersonate'])->name('users.impersonate');
     Route::post('/impersonate/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonate.stop');
+
+    /* ── SMS Broadcast (admin only) ── */
+    Route::get('/admin/sms', [SmsController::class, 'index'])->name('admin.sms.index');
+    Route::get('/admin/sms/create', [SmsController::class, 'create'])->name('admin.sms.create');
+    Route::post('/admin/sms', [SmsController::class, 'store'])->name('admin.sms.send');
+    Route::get('/admin/sms/{smsLog}', [SmsController::class, 'show'])->name('admin.sms.show');
 
     /* ── AJAX helpers ── */
     Route::get('/ajax/customers', [UserManagementController::class, 'ajaxCustomers'])->name('ajax.customers');

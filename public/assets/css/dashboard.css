@@ -2342,6 +2342,403 @@ tbody td {
   margin-bottom: 2px;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   SMS BROADCAST
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Stats strip ──────────────────────────────────────────────────── */
+.sms-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 4px;
+}
+@media (max-width: 1100px) { .sms-stats-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .sms-stats-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 440px)  { .sms-stats-strip { grid-template-columns: 1fr; } }
+
+.sms-stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sms-stat-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+.sms-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Status badges ────────────────────────────────────────────────── */
+.sms-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sms-status-badge.sms-status-lg {
+  padding: 5px 14px;
+  font-size: 0.82rem;
+}
+.sms-status-completed { background: #d1fae5; color: #065f46; }
+.sms-status-partial   { background: #fef3c7; color: #92400e; }
+.sms-status-failed    { background: #fee2e2; color: #991b1b; }
+.sms-status-sending   { background: #e0f2fe; color: #0369a1; }
+
+/* ── Recipient type badges ────────────────────────────────────────── */
+.sms-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--text-muted);
+}
+.sms-type-all       { background: #ede9fe; color: #5b21b6; }
+.sms-type-customers { background: #fce7f3; color: #9d174d; }
+.sms-type-staff     { background: #dbeafe; color: #1e40af; }
+.sms-type-custom    { background: #d1fae5; color: #065f46; }
+
+/* ── Message preview in table ─────────────────────────────────────── */
+.sms-msg-preview {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.sms-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+.sms-empty-state i { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+/* ── Compose layout ──────────────────────────────────────────────── */
+.sms-compose-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 860px) { .sms-compose-grid { grid-template-columns: 1fr; } }
+
+.sms-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Radio cards ─────────────────────────────────────────────────── */
+.sms-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sms-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sms-radio-card:hover { border-color: var(--primary); background: #f0fdf4; }
+.sms-radio-card.selected { border-color: var(--primary); background: #f0fdf4; }
+.sms-radio-card input[type="radio"] { display: none; }
+.sms-radio-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--primary-light, #d1fae5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.sms-radio-text {
+  display: flex;
+  flex-direction: column;
+}
+.sms-radio-text strong { font-size: 0.86rem; color: var(--text); }
+.sms-radio-text small  { font-size: 0.73rem; color: var(--text-muted); margin-top: 1px; }
+
+/* ── Recipient count preview ─────────────────────────────────────── */
+.sms-count-preview {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--primary, #15803d);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+/* ── Custom user selector ────────────────────────────────────────── */
+.sms-custom-panel { margin-top: 14px; }
+
+.sms-user-search-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+.sms-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.sms-user-search {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  outline: none;
+  background: var(--input-bg, #fff);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.sms-user-search:focus { border-color: var(--primary); }
+
+.sms-select-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sms-sel-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.sms-sel-btn:hover { background: var(--border); color: var(--text); }
+.sms-sel-count { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+
+.sms-user-list {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sms-user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sms-user-item:hover { background: var(--hover-bg, #f9fafb); }
+.sms-user-item input[type="checkbox"] { flex-shrink: 0; accent-color: var(--primary); }
+.sms-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary-light, #d1fae5);
+  color: var(--primary, #15803d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.sms-user-info { display: flex; flex-direction: column; }
+.sms-user-info strong { font-size: 0.83rem; color: var(--text); }
+.sms-user-info small  { font-size: 0.72rem; color: var(--text-muted); }
+
+/* ── Textarea & counter ──────────────────────────────────────────── */
+.sms-textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  background: var(--input-bg, #fff);
+  color: var(--text);
+  box-sizing: border-box;
+  line-height: 1.55;
+}
+.sms-textarea:focus { border-color: var(--primary); }
+
+.sms-char-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.sms-sms-count { display: flex; align-items: center; gap: 4px; }
+
+.sms-char-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.sms-char-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+.sms-hint {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ── Send bar ─────────────────────────────────────────────────────── */
+.sms-send-bar { margin-top: 20px; }
+.sms-send-btn { width: 100%; justify-content: center; gap: 8px; }
+
+/* ── Phone preview ───────────────────────────────────────────────── */
+.sms-preview-card { margin-top: 14px; }
+.sms-phone-mock {
+  background: #f3f4f6;
+  border-radius: 14px;
+  padding: 20px 16px;
+  min-height: 120px;
+  display: flex;
+  align-items: flex-start;
+}
+.sms-bubble {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 0;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 100%;
+  word-break: break-word;
+}
+
+/* ── Detail / show page ──────────────────────────────────────────── */
+.sms-detail-meta {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.sms-message-body { margin-top: 16px; }
+.sms-message-text {
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 6px;
+  color: var(--text);
+}
+
+/* ── Recipients header / filter bar ──────────────────────────────── */
+.sms-recipients-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 20px 0;
+}
+.sms-recipients-header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.sms-rcpt-filter { display: flex; gap: 6px; }
+.sms-rcpt-filter-btn {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.sms-rcpt-filter-btn:hover { background: var(--hover-bg, #f3f4f6); color: var(--text); }
+.sms-rcpt-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── Utility colour helpers ──────────────────────────────────────── */
+.text-success-muted { color: #15803d; }
+.text-danger-muted  { color: #b91c1c; }
+
+/* ── Wallet balance stat card ────────────────────────────────────── */
+.sms-stat-balance {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+.sms-balance-value { color: #15803d; }
+
+/* ── Balance pill on compose page ───────────────────────────────── */
+.sms-balance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #166534;
+  margin-top: 10px;
+}
+
 .txn-card-foot {
   display: flex;
   align-items: center;

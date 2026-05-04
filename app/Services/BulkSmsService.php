@@ -81,4 +81,51 @@ class BulkSmsService
 
         return $digits; // return as-is and let the API validate
     }
+
+    /**
+     * Fetch the current SMS wallet balance.
+     * Returns an array: ['balance' => float, 'formatted' => string]
+     * or null on failure.
+     *
+     * New API response shape:
+     * { "data": { "status": "success" }, "balance": { "total_balance": 743, "universal_wallet": "743.04", ... } }
+     */
+    public function getBalance(): ?array
+    {
+        if (empty($this->token)) {
+            return null;
+        }
+
+        try {
+            $response = Http::withToken($this->token)
+                ->accept('application/json')
+                ->get('https://www.bulksmsnigeria.com/api/v2/balance');
+
+            if ($response->successful()) {
+                $json = $response->json();
+
+                // New response format: top-level "balance" key
+                if (isset($json['balance']) && is_array($json['balance'])) {
+                    $b       = $json['balance'];
+                    $amount  = (float) ($b['universal_wallet'] ?? $b['total_balance'] ?? 0);
+                    return [
+                        'balance'   => $amount,
+                        'formatted' => '₦' . number_format($amount, 2),
+                        'currency'  => 'NGN',
+                        'sms_wallet'=> $b['sms_wallet'] ?? '0.00',
+                    ];
+                }
+            }
+
+            Log::warning('BulkSMS: Balance check failed.', [
+                'status'   => $response->status(),
+                'response' => $response->body(),
+            ]);
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning('BulkSMS: Exception during balance check.', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
 }

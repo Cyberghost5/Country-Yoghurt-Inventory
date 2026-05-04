@@ -102,6 +102,10 @@ $_pendingDeliveries = match($_u->role) {
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
       <i class="bi bi-bar-chart-line nav-icon"></i>Reports
     </a>
+    <a href="{{ route('admin.sms.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('admin.sms.*') ? 'active' : '' }}">
+      <i class="bi bi-chat-dots nav-icon"></i>SMS Broadcast
+    </a>
   @endif
 
   @php $notifCount = auth()->user()?->unreadNotifications()->count() ?? 0; @endphp

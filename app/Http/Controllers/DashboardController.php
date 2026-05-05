@@ -98,11 +98,11 @@ class DashboardController extends Controller
 
             $recentStaff = User::where('role', 'staff')
                 ->latest()->limit(5)
-                ->get(['name', 'email', 'state', 'lga', 'created_at']);
+                ->get(['id', 'name', 'email', 'state', 'lga', 'created_at']);
 
             $recentCustomers = User::where('role', 'customer')
                 ->latest()->limit(5)
-                ->get(['name', 'shop_name', 'state', 'lga', 'created_at']);
+                ->get(['id', 'name', 'shop_name', 'state', 'lga', 'created_at']);
 
             $smsBalance = app(BulkSmsService::class)->getBalance();
         }

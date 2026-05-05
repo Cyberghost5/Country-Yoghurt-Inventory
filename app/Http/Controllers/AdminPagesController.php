@@ -120,4 +120,43 @@ class AdminPagesController extends Controller
             abort(403);
         }
     }
+
+    public function debtsIndex(Request $request)
+    {
+        $this->ensureAdmin($request);
+
+        $user = $request->user();
+
+        $debtRows = DB::table('orders')
+            ->join('users', 'users.id', '=', 'orders.user_id')
+            ->leftJoinSub(
+                DB::table('payments')
+                    ->where('status', 'approved')
+                    ->select('order_id', DB::raw('SUM(amount) as paid'))
+                    ->groupBy('order_id'),
+                'ps', 'ps.order_id', '=', 'orders.id'
+            )
+            ->whereIn('orders.status', ['approved', 'delivered'])
+            ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
+            ->select(
+                'orders.id as order_id',
+                'orders.order_number',
+                'orders.status as order_status',
+                'orders.total_amount',
+                'orders.created_at as order_date',
+                DB::raw('COALESCE(ps.paid, 0) as paid_amount'),
+                DB::raw('orders.total_amount - COALESCE(ps.paid, 0) as outstanding'),
+                'users.id as customer_id',
+                'users.name as customer_name',
+                'users.shop_name',
+                'users.phone',
+                'users.state',
+            )
+            ->orderByDesc('outstanding')
+            ->get();
+
+        $totalOutstanding = $debtRows->sum('outstanding');
+
+        return view('admin.debts-index', compact('user', 'debtRows', 'totalOutstanding'));
+    }
 }

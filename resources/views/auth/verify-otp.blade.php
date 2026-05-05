@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reset Password - Country Yoghurt Inventory</title>
+    <title>Verify OTP - Country Yoghurt Inventory</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -75,13 +75,17 @@
       <div class="lp-right">
         <div class="lp-form-wrap">
 
-          <a href="{{ route('login') }}" class="back-link">
-            <i class="bi bi-arrow-left"></i> Back to sign in
+          <a href="{{ route('password.request') }}" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back
           </a>
 
           <div class="lp-form-head" style="margin-top: 18px;">
-            <h2>Set new password</h2>
-            <p>Choose a strong password for your account.</p>
+            <h2>Enter your OTP</h2>
+            @if (session('status'))
+              <p>{{ session('status') }}</p>
+            @else
+              <p>Enter the 6-digit code sent to your phone number.</p>
+            @endif
           </div>
 
           @if ($errors->any())
@@ -91,51 +95,43 @@
             </div>
           @endif
 
-          <form method="POST" action="{{ route('password.update') }}" class="lp-form" novalidate>
+          <form method="POST" action="{{ route('password.verify.post') }}" class="lp-form" novalidate>
             @csrf
 
-            <input type="hidden" name="token" value="{{ $token }}" />
-
             <div class="form-group">
-              <label for="password">New Password</label>
+              <label for="otp">6-Digit OTP Code</label>
               <div class="input-wrap">
-                <i class="bi bi-lock"></i>
+                <i class="bi bi-shield-lock"></i>
                 <input
-                  id="password"
-                  type="password"
-                  name="password"
-                  placeholder="Min. 8 characters"
-                  autocomplete="new-password"
+                  id="otp"
+                  type="text"
+                  name="otp"
+                  placeholder="123456"
+                  maxlength="6"
+                  inputmode="numeric"
+                  pattern="[0-9]{6}"
+                  autocomplete="one-time-code"
+                  autofocus
                   required
+                  style="letter-spacing: 0.35em; font-size: 1.4rem; font-weight: 600; text-align: center;"
                 />
-                <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password">
-                  <i class="bi bi-eye"></i>
-                </button>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="password_confirmation">Confirm Password</label>
-              <div class="input-wrap">
-                <i class="bi bi-lock-fill"></i>
-                <input
-                  id="password_confirmation"
-                  type="password"
-                  name="password_confirmation"
-                  placeholder="Repeat your new password"
-                  autocomplete="new-password"
-                  required
-                />
-                <button type="button" class="pw-toggle" data-target="password_confirmation" aria-label="Toggle password">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </div>
+              <small style="color: #888; font-size: 0.78rem; margin-top: 4px; display: block;">
+                The code expires in 10 minutes.
+              </small>
             </div>
 
             <button type="submit" class="btn-signin">
-              Reset Password
+              Verify Code
             </button>
           </form>
+
+          <p style="text-align:center; font-size: 0.85rem; margin-top: 18px; color: #888;">
+            Didn't receive a code?
+            <a href="{{ route('password.request') }}" style="color: var(--primary, #2d6a4f); font-weight: 600;">
+              Send again
+            </a>
+          </p>
 
           <p class="lp-footer-note">
             This portal is restricted to authorized personnel only.<br>
@@ -145,17 +141,5 @@
       </div>
 
     </div>
-
-    <script>
-      document.querySelectorAll('.pw-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const input = document.getElementById(btn.dataset.target);
-          const icon  = btn.querySelector('i');
-          const isHidden = input.type === 'password';
-          input.type = isHidden ? 'text' : 'password';
-          icon.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
-        });
-      });
-    </script>
   </body>
 </html>

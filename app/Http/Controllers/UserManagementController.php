@@ -112,7 +112,9 @@ class UserManagementController extends Controller
 
     public function editUser(Request $request, User $user)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        $actor = $request->user();
+        if ($actor->role === 'staff' && $user->role !== 'customer') abort(403);
+        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
 
         return view('users.edit', [
             'user'       => $request->user(),
@@ -124,7 +126,9 @@ class UserManagementController extends Controller
 
     public function updateUser(Request $request, User $user)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        $actor = $request->user();
+        if ($actor->role === 'staff' && $user->role !== 'customer') abort(403);
+        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
 
         $rules = [
             'name'     => ['required', 'string', 'max:255'],

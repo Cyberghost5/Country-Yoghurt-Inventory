@@ -90,16 +90,16 @@
             @csrf
 
             <div class="form-group">
-              <label for="email">Email Address</label>
+              <label for="phone">Phone Number</label>
               <div class="input-wrap">
-                <i class="bi bi-envelope"></i>
+                <i class="bi bi-phone"></i>
                 <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  placeholder="Enter your email"
-                  value="{{ old('email') }}"
-                  autocomplete="email"
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  placeholder="e.g. 08012345678"
+                  value="{{ old('phone') }}"
+                  autocomplete="tel"
                   autofocus
                   required
                 />

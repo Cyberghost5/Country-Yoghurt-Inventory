@@ -133,7 +133,7 @@
               <small class="stat-label">Total Revenue</small>
             </a>
 
-            <a href="{{ route('payments.index') }}" class="stat-card danger">
+            <a href="{{ route('admin.debts.index') }}" class="stat-card danger">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
               </div>
@@ -241,7 +241,7 @@
                   </thead>
                   <tbody>
                     @forelse($recentStaff as $row)
-                      <tr>
+                      <tr class="clickable-row" onclick="window.location='{{ route('users.edit', $row->id) }}'" style="cursor:pointer;">
                         <td>{{ $row->name }}</td>
                         <td>{{ $row->state ?: '-' }}</td>
                         <td>{{ optional($row->created_at)->format('d M Y') }}</td>
@@ -269,7 +269,7 @@
                   </thead>
                   <tbody>
                     @forelse($recentCustomers as $row)
-                      <tr>
+                      <tr class="clickable-row" onclick="window.location='{{ route('customers.show', $row->id) }}'" style="cursor:pointer;">
                         <td>{{ $row->name }}</td>
                         <td>{{ $row->shop_name ?: '-' }}</td>
                         <td>{{ $row->state ?: '-' }}</td>

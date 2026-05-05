@@ -81,7 +81,7 @@
 
           <div class="lp-form-head" style="margin-top: 18px;">
             <h2>Forgot your password?</h2>
-            <p>Enter your email and we'll send you a link to reset it.</p>
+            <p>Enter your registered phone number and we'll send you a 6-digit OTP code.</p>
           </div>
 
           @if (session('status'))
@@ -102,16 +102,16 @@
             @csrf
 
             <div class="form-group">
-              <label for="email">Email Address</label>
+              <label for="phone">Phone Number</label>
               <div class="input-wrap">
-                <i class="bi bi-envelope"></i>
+                <i class="bi bi-phone"></i>
                 <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  placeholder="admin@countryyoghurt.ng"
-                  value="{{ old('email') }}"
-                  autocomplete="email"
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  placeholder="e.g. 08012345678"
+                  value="{{ old('phone') }}"
+                  autocomplete="tel"
                   autofocus
                   required
                 />
@@ -119,7 +119,7 @@
             </div>
 
             <button type="submit" class="btn-signin">
-              Send Reset Link
+              Send OTP Code
             </button>
           </form>
 

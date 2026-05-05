@@ -3,48 +3,59 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 
 class ResetPasswordController extends Controller
 {
-    public function showForm(string $token)
+    public function showForm(Request $request, string $token)
     {
-        return view('auth.reset-password', [
-            'token' => $token,
-            'email' => request('email'),
-        ]);
+        $sessionToken   = $request->session()->get('otp_reset_token');
+        $sessionExpires = $request->session()->get('otp_reset_expires');
+
+        if (!$sessionToken || $token !== $sessionToken || now()->timestamp > (int) $sessionExpires) {
+            return redirect()->route('password.request')
+                ->withErrors(['phone' => 'This reset link has expired. Please start again.']);
+        }
+
+        return view('auth.reset-password', ['token' => $token]);
     }
 
     public function reset(Request $request)
     {
         $request->validate([
-            'token'                 => ['required'],
-            'email'                 => ['required', 'email'],
-            'password'              => ['required', 'min:8', 'confirmed'],
+            'token'    => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill(['password' => Hash::make($password)])
-                     ->setRememberToken(Str::random(60));
+        $token          = $request->input('token');
+        $sessionToken   = $request->session()->get('otp_reset_token');
+        $sessionExpires = $request->session()->get('otp_reset_expires');
+        $phone          = $request->session()->get('otp_reset_phone');
 
-                $user->save();
+        if (!$sessionToken || $token !== $sessionToken || now()->timestamp > (int) $sessionExpires || !$phone) {
+            return redirect()->route('password.request')
+                ->withErrors(['phone' => 'This reset link has expired. Please start again.']);
+        }
 
-                event(new PasswordReset($user));
+        $user = User::where('phone', $phone)->first();
 
-                Auth::login($user);
-            }
-        );
+        if (!$user) {
+            return redirect()->route('password.request')
+                ->withErrors(['phone' => 'Account not found.']);
+        }
 
-        return $status === Password::PASSWORD_RESET
-            ? redirect()->route('dashboard')->with('status', __($status))
-            : back()->withInput($request->only('email'))
-                    ->withErrors(['email' => __($status)]);
+        $user->password = Hash::make($request->input('password'));
+        $user->save();
+
+        $request->session()->forget(['otp_reset_token', 'otp_reset_phone', 'otp_reset_expires']);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('dashboard')
+            ->with('status', 'Password reset successfully. Welcome back!');
     }
 }

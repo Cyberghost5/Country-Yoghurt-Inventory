@@ -21,9 +21,11 @@ Route::get('/', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-/* ── Password Reset ── */
+/* ── Password Reset (OTP via SMS) ── */
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showForm'])->name('password.request');
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendLink'])->name('password.email');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
+Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerify'])->name('password.verify');
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify.post');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showForm'])->name('password.reset');
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
@@ -34,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/staff', [AdminPagesController::class, 'staffIndex'])->name('admin.staff.index');
     Route::get('/admin/admins', [AdminPagesController::class, 'adminIndex'])->name('admin.admins.index');
     Route::get('/admin/customers', [AdminPagesController::class, 'customerIndex'])->name('admin.customers.index');
+    Route::get('/admin/debts', [AdminPagesController::class, 'debtsIndex'])->name('admin.debts.index');
     Route::get('/staff/customers', [AdminPagesController::class, 'staffCustomerIndex'])->name('staff.customers.index');
     Route::get('/customers/{customer}', [AdminPagesController::class, 'customerShow'])->name('customers.show');
 

@@ -91,9 +91,9 @@
                     </td>
                     <td>
                       @if($row->order_status === 'delivered')
-                        <span class="badge-pill" style="background:#e8f5e9;color:#2d6a4f;">Delivered</span>
+                        <span class="badge-pill" style="background:#e8f5e9;color:#2d6a4f;padding:4px 8px;border-radius:12px;">Delivered</span>
                       @else
-                        <span class="badge-pill" style="background:#fff3cd;color:#b45309;">Approved</span>
+                        <span class="badge-pill" style="background:#fff3cd;color:#b45309;padding:4px 8px;border-radius:12px;">Approved</span>
                       @endif
                     </td>
                     <td>{{ \Carbon\Carbon::parse($row->order_date)->format('d M Y') }}</td>

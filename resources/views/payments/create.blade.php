@@ -171,7 +171,7 @@
             </h3>
             <div class="pay-form-grid">
               <div class="pay-form-field">
-                <label class="inv-field-label" for="amount">Amount Paid (?) <span class="req">*</span></label>
+                <label class="inv-field-label" for="amount">Amount Paid (₦) <span class="req">*</span></label>
                 <input type="number" id="amount" name="amount" step="0.01" min="0.01"
                        class="inv-field-input {{ $errors->has('amount') ? 'is-invalid' : '' }}"
                        value="{{ old('amount', isset($preRemaining) ? number_format($preRemaining, 2, '.', '') : '') }}"

@@ -41,6 +41,14 @@
                 <i class="bi bi-plus-lg"></i> Place Order
               </a>
             @endif
+            @if ($user->isAdminOrStaff())
+              <form method="POST" action="{{ route('orders.destroyAll') }}" id="clearAllOrdersForm" style="display:inline">
+                @csrf @method('DELETE')
+                <button type="button" class="ghost-btn" style="color:#dc2626; border-color:#dc2626;" onclick="if(confirm('Delete ALL orders? This cannot be undone.')) document.getElementById('clearAllOrdersForm').submit();">
+                  <i class="bi bi-trash3"></i> Clear All
+                </button>
+              </form>
+            @endif
           </div>
         </header>
 
@@ -93,7 +101,7 @@
                   <th>Total (&#8358;)</th>
                   <th>Remaining (&#8358;)</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,10 +132,18 @@
                         {{ $order->status_label }}
                       </span>
                     </td>
-                    <td>
+                    <td style="white-space:nowrap;">
                       <a href="{{ route('orders.show', $order) }}" class="inv-action-btn" title="View">
                         <i class="bi bi-eye"></i>
                       </a>
+                      @if ($user->isAdminOrStaff())
+                        <form method="POST" action="{{ route('orders.destroy', $order) }}" style="display:inline" onsubmit="return confirm('Delete order {{ $order->order_number }}?');">
+                          @csrf @method('DELETE')
+                          <button type="submit" class="inv-action-btn" title="Delete" style="color:#dc2626; background:none; border:none; cursor:pointer; padding:4px 6px;">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </form>
+                      @endif
                     </td>
                   </tr>
                 @empty

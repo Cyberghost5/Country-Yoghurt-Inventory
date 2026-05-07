@@ -56,7 +56,7 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
-        // ?type=delivery — route staff/admin to deliveries, customers to a picker
+        // ?type=delivery - route staff/admin to deliveries, customers to a picker
         if ($request->input('type') === 'delivery') {
             if ($user->role === 'customer') {
                 $payableAllocations = DeliveryAllocation::with('delivery.staff', 'items', 'payments')
@@ -320,6 +320,11 @@ class PaymentController extends Controller
                      . " {$ref} has been approved.{$balancePart} Thank you! - Country Yoghurt";
             app(BulkSmsService::class)->send($customer->phone, $message);
         }
+
+        // Notify all super_admins about this approval
+        $approverName = $user->name;
+        User::where('role', 'super_admin')->get()
+            ->each(fn ($sa) => $sa->notify(new PaymentNotification('admin_approved', $payment, $approverName)));
 
         return redirect()->route('payments.show', $payment)
             ->with('status', 'Payment approved.');

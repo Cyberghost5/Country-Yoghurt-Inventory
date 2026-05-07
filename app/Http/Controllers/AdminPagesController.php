@@ -30,9 +30,13 @@ class AdminPagesController extends Controller
         $this->ensureAdmin($request);
 
         $user = $request->user();
-        $admins = User::whereIn('role', ['admin', 'super_admin'])
+
+        // Regular admins cannot view super_admin accounts
+        $roles = $user->role === 'super_admin' ? ['admin', 'super_admin'] : ['admin'];
+
+        $admins = User::whereIn('role', $roles)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'state', 'lga', 'created_at']);
+            ->get(['id', 'name', 'email', 'phone', 'state', 'lga', 'created_at', 'role']);
 
         return view('admin.admin-index', compact('user', 'admins'));
     }
@@ -48,14 +52,31 @@ class AdminPagesController extends Controller
             LEFT JOIN (SELECT delivery_allocation_id, SUM(amount) as paid FROM payments WHERE status = 'approved' GROUP BY delivery_allocation_id) ps ON ps.delivery_allocation_id = da.id
             WHERE da.customer_id = users.id AND d.status IN ('dispatched','completed') AND da.total_amount > COALESCE(ps.paid, 0)) as outstanding_debt";
 
-        $customers = User::where('role', 'customer')
+        $search   = $request->input('search');
+        $state    = $request->input('state');
+        $debtOnly = $request->boolean('debt');
+
+        $query = User::where('role', 'customer')
             ->select(['id', 'name', 'shop_name', 'email', 'phone', 'address', 'state', 'lga', 'created_at'])
             ->addSelect(DB::raw($debtSub))
+            ->when($search, fn ($q) => $q->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('shop_name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            }))
+            ->when($state, fn ($q) => $q->where('state', $state))
             ->orderBy('state')
-            ->orderBy('shop_name')
-            ->get();
+            ->orderBy('shop_name');
 
-        return view('admin.customer-index', compact('user', 'customers'));
+        // Filter by debt must happen after the subselect is available
+        $customers = $query->get();
+        if ($debtOnly) {
+            $customers = $customers->where('outstanding_debt', '>', 0)->values();
+        }
+
+        $states = User::where('role', 'customer')->distinct()->orderBy('state')->pluck('state');
+
+        return view('admin.customer-index', compact('user', 'customers', 'states', 'search', 'state', 'debtOnly'));
     }
 
     /* ── Staff: customers in their state ── */
@@ -70,15 +91,31 @@ class AdminPagesController extends Controller
             LEFT JOIN (SELECT delivery_allocation_id, SUM(amount) as paid FROM payments WHERE status = 'approved' GROUP BY delivery_allocation_id) ps ON ps.delivery_allocation_id = da.id
             WHERE da.customer_id = users.id AND d.status IN ('dispatched','completed') AND da.total_amount > COALESCE(ps.paid, 0)) as outstanding_debt";
 
-        $customers = User::where('role', 'customer')
+        $search   = $request->input('search');
+        $state    = $user->role === 'staff' ? $user->state : $request->input('state');
+        $debtOnly = $request->boolean('debt');
+
+        $query = User::where('role', 'customer')
             ->select(['id', 'name', 'shop_name', 'email', 'phone', 'address', 'state', 'lga', 'created_at'])
             ->addSelect(DB::raw($debtSub))
+            ->when($search, fn ($q) => $q->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('shop_name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            }))
             ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
             ->orderBy('shop_name')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
 
-        return view('admin.customer-index', compact('user', 'customers'));
+        $customers = $query->get();
+        if ($debtOnly) {
+            $customers = $customers->where('outstanding_debt', '>', 0)->values();
+        }
+
+        // Staff only see their own state, so no state filter needed in view
+        $states = collect();
+
+        return view('admin.customer-index', compact('user', 'customers', 'states', 'search', 'state', 'debtOnly'));
     }
 
     /* ── Customer detail (admin + staff) ── */

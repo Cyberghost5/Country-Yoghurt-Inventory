@@ -25,9 +25,11 @@
             <p>All administrator accounts on the system.</p>
           </div>
           <div class="topbar-actions">
-            <a href="{{ route('users.create.admin') }}" class="primary-btn">
-              <i class="bi bi-shield-plus"></i> Add Admin
-            </a>
+            @if ($user->role === 'super_admin')
+              <a href="{{ route('users.create.admin') }}" class="primary-btn">
+                <i class="bi bi-shield-plus"></i> Add Admin
+              </a>
+            @endif
           </div>
         </header>
 

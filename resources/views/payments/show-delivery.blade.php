@@ -67,7 +67,7 @@
           <div class="ord-meta-card">
             <p class="ord-meta-label">Payment No.</p>
             <p class="ord-meta-value" style="font-family:'Courier New',monospace; font-size:0.88rem;">
-              {{ $payment->payment_number ?? '—' }}
+              {{ $payment->payment_number ?? '-' }}
             </p>
           </div>
           <div class="ord-meta-card">
@@ -94,14 +94,14 @@
                   {{ $payment->deliveryAllocation->delivery->delivery_number }}
                 </a>
               @else
-                <span style="color:var(--text-soft); font-size:0.85rem;">—</span>
+                <span style="color:var(--text-soft); font-size:0.85rem;">-</span>
               @endif
             </p>
           </div>
 
           <div class="ord-meta-card">
             <p class="ord-meta-label">Customer</p>
-            <p class="ord-meta-value">{{ $payment->deliveryAllocation->customer->name ?? '—' }}</p>
+            <p class="ord-meta-value">{{ $payment->deliveryAllocation->customer->name ?? '-' }}</p>
             @if ($payment->deliveryAllocation?->customer?->shop_name)
               <small class="ord-meta-sub">{{ $payment->deliveryAllocation->customer->shop_name }}</small>
             @endif
@@ -172,7 +172,7 @@
                 <tbody>
                   @foreach ($alloc->items as $item)
                     <tr>
-                      <td style="padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->product_name ?? $item->product->name ?? '—' }}</td>
+                      <td style="padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->product_name ?? $item->product->name ?? '-' }}</td>
                       <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->quantity }}</td>
                       <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->unit_price, 2) }}</td>
                       <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->quantity * $item->unit_price, 2) }}</td>

@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Delivery;
 use App\Models\DeliveryAllocation;
+use App\Models\Product;
 use App\Models\User;
+use App\Services\BulkSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class DeliveryController extends Controller
 {
@@ -78,7 +81,9 @@ class DeliveryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'shop_name', 'state']);
 
-        return view('deliveries.create', compact('user', 'customers'));
+        $products  = Product::orderBy('name')->get(['id', 'name', 'unit', 'selling_price']);
+
+        return view('deliveries.create', compact('user', 'customers', 'products'));
     }
 
     /* ── Store ── */
@@ -94,14 +99,22 @@ class DeliveryController extends Controller
             'customers.*.customer_id'                   => 'required|integer|exists:users,id',
             'customers.*.allocation_date'               => 'nullable|date',
             'customers.*.items'                         => 'required|array|min:1',
-            'customers.*.items.*.product_name'          => 'required|string|max:255',
-            'customers.*.items.*.unit_price'            => 'required|numeric|min:0',
+            'customers.*.items.*.product_name'          => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
             'customers.*.items.*.quantity'              => 'required|integer|min:1',
         ]);
 
         $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
 
-        $delivery = DB::transaction(function () use ($user, $request, $scheduledAt) {
+        // Build canonical price map from DB - ignores any submitted unit_price
+        $allProductNames = [];
+        foreach ($request->input('customers') as $cData) {
+            foreach ($cData['items'] as $item) {
+                $allProductNames[] = trim($item['product_name']);
+            }
+        }
+        $priceMap = Product::whereIn('name', array_unique($allProductNames))->pluck('selling_price', 'name');
+
+        $delivery = DB::transaction(function () use ($user, $request, $scheduledAt, $priceMap) {
             $delivery = Delivery::create([
                 'delivery_number' => $this->generateDeliveryNumber(),
                 'staff_id'        => $user->id,
@@ -115,7 +128,7 @@ class DeliveryController extends Controller
                 $itemRecords   = [];
 
                 foreach ($cData['items'] as $item) {
-                    $price    = round((float) $item['unit_price'], 2);
+                    $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
                     $qty      = (int) $item['quantity'];
                     $subtotal = round($price * $qty, 2);
                     $customerTotal += $subtotal;
@@ -176,7 +189,9 @@ class DeliveryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'shop_name', 'state']);
 
-        return view('deliveries.edit', compact('user', 'delivery', 'customers'));
+        $products = Product::orderBy('name')->get(['id', 'name', 'unit', 'selling_price']);
+
+        return view('deliveries.edit', compact('user', 'delivery', 'customers', 'products'));
     }
 
     /* ── Update ── */
@@ -193,14 +208,22 @@ class DeliveryController extends Controller
             'customers.*.customer_id'                   => 'required|integer|exists:users,id',
             'customers.*.allocation_date'               => 'nullable|date',
             'customers.*.items'                         => 'required|array|min:1',
-            'customers.*.items.*.product_name'          => 'required|string|max:255',
-            'customers.*.items.*.unit_price'            => 'required|numeric|min:0',
+            'customers.*.items.*.product_name'          => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
             'customers.*.items.*.quantity'              => 'required|integer|min:1',
         ]);
 
         $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
 
-        DB::transaction(function () use ($delivery, $request, $scheduledAt) {
+        // Build canonical price map from DB
+        $allProductNames = [];
+        foreach ($request->input('customers') as $cData) {
+            foreach ($cData['items'] as $item) {
+                $allProductNames[] = trim($item['product_name']);
+            }
+        }
+        $priceMap = Product::whereIn('name', array_unique($allProductNames))->pluck('selling_price', 'name');
+
+        DB::transaction(function () use ($delivery, $request, $scheduledAt, $priceMap) {
             $delivery->update([
                 'scheduled_at' => $scheduledAt,
                 'notes'        => $request->input('notes'),
@@ -218,7 +241,7 @@ class DeliveryController extends Controller
                 $itemRecords   = [];
 
                 foreach ($cData['items'] as $item) {
-                    $price    = round((float) $item['unit_price'], 2);
+                    $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
                     $qty      = (int) $item['quantity'];
                     $subtotal = round($price * $qty, 2);
                     $customerTotal += $subtotal;
@@ -285,6 +308,13 @@ class DeliveryController extends Controller
             'completed_at' => now(),
         ]);
 
+        // SMS to all super_admins
+        $delivery->loadMissing('allocations');
+        $total   = $delivery->totalAmount();
+        $message = "Goods of NGN " . number_format($total, 2) . " value has been delivered to you. - Country Yoghurt";
+        User::where('role', 'super_admin')->whereNotNull('phone')->get()
+            ->each(fn ($sa) => app(BulkSmsService::class)->send($sa->phone, $message));
+
         return redirect()->route('deliveries.show', $delivery)
             ->with('status', "Delivery {$delivery->delivery_number} marked as completed.");
     }
@@ -311,7 +341,7 @@ class DeliveryController extends Controller
                 'delivery_number' => $a->delivery->delivery_number ?? '-',
                 'total_amount'    => number_format((float) $a->total_amount, 2, '.', ''),
                 'remaining'       => number_format($remaining, 2, '.', ''),
-                'label'           => ($a->delivery->delivery_number ?? '-') . ' — ₦' . number_format($remaining, 2) . ' remaining',
+                'label'           => ($a->delivery->delivery_number ?? '-') . ' - ₦' . number_format($remaining, 2) . ' remaining',
             ];
         })->filter(fn ($a) => (float) $a['remaining'] > 0)->values());
     }

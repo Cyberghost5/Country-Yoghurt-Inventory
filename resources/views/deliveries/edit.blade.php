@@ -97,6 +97,13 @@
           return ['id' => $c->id, 'name' => $c->name, 'shop' => $c->shop_name ?? '', 'state' => $c->state ?? ''];
       })->values();
 
+      $productsJson = $products->map(fn ($p) => [
+          'id'    => $p->id,
+          'name'  => $p->name,
+          'unit'  => $p->unit,
+          'price' => (float) $p->selling_price,
+      ])->values();
+
       $existingJson = $delivery->allocations->map(function ($a) {
           return [
               'customer_id'     => $a->customer_id,
@@ -124,6 +131,21 @@
 
       /* Customer data */
       var CUSTOMERS = @json($customersJson);
+      var PRODUCTS  = @json($productsJson);
+
+      function buildProductOptions(selected, excludeNames) {
+        selected     = selected || '';
+        excludeNames = excludeNames || new Set();
+        var opts = '<option value="">\u2014 Select product \u2014</option>';
+        PRODUCTS.forEach(function(p) {
+          if (excludeNames.has(p.name) && p.name !== selected) return;
+          var isSel = p.name === selected ? ' selected' : '';
+          opts += '<option value="' + p.name + '" data-price="' + p.price + '"' + isSel + '>' +
+                  p.name + ' (' + p.unit.charAt(0).toUpperCase() + p.unit.slice(1) + ')' +
+                  '</option>';
+        });
+        return opts;
+      }
 
       /* Existing allocations pre-fill */
       var EXISTING = @json($existingJson);
@@ -145,11 +167,19 @@
 
       function buildItemRow(ci, ii, prefill) {
         prefill = prefill || {};
+        // Always show current price from PRODUCTS catalogue
+        var displayPrice = '';
+        if (prefill.product_name) {
+          var prod = PRODUCTS.find(function(p) { return p.name === prefill.product_name; });
+          displayPrice = prod ? prod.price.toFixed(2) : (prefill.unit_price ? parseFloat(prefill.unit_price).toFixed(2) : '');
+        }
+        var subtotalVal = (displayPrice && prefill.quantity)
+          ? (parseFloat(displayPrice) * parseInt(prefill.quantity)).toFixed(2) : '';
         return '<tr data-item="' + ii + '">' +
-          '<td><input type="text" name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input" placeholder="e.g. Yoghurt 500ml" required value="' + esc(prefill.product_name || '') + '" /></td>' +
-          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" required value="' + (prefill.unit_price || '') + '" /></td>' +
+          '<td><select name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input product-name-select" required>' + buildProductOptions(prefill.product_name || '') + '</select></td>' +
+          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" readonly style="background:#f5f3ef; cursor:default;" value="' + displayPrice + '" /></td>' +
           '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="1" required value="' + (prefill.quantity || '') + '" /></td>' +
-          '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" value="' + (prefill.unit_price && prefill.quantity ? (parseFloat(prefill.unit_price) * parseInt(prefill.quantity)).toFixed(2) : '') + '" /></td>' +
+          '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" value="' + subtotalVal + '" /></td>' +
           '<td><button type="button" class="remove-btn remove-item-btn" title="Remove row"><i class="bi bi-trash3"></i></button></td>' +
           '</tr>';
       }
@@ -178,7 +208,7 @@
           '</div>' +
           buildSearchableCustomer(ci) +
           '<div class="form-group" style="margin-bottom:10px;">' +
-            '<label class="form-label" style="font-size:0.82rem;">Allocation Date <span style="color:#aaa;">(optional — defaults to scheduled date)</span></label>' +
+            '<label class="form-label" style="font-size:0.82rem;">Allocation Date <span style="color:#aaa;">(optional - defaults to scheduled date)</span></label>' +
             '<input type="date" name="customers[' + ci + '][allocation_date]" class="form-input" value="' + esc(prefill.allocation_date || '') + '" />' +
           '</div>' +
           '<table class="dlv-items-table" style="margin-top:14px;">' +
@@ -192,6 +222,12 @@
 
         document.getElementById('customersWrapper').appendChild(section);
 
+        /* Track used products per section - seed from pre-filled items */
+        section._usedProducts = {};
+        items.forEach(function(item, idx) {
+          if (item.product_name) section._usedProducts[idx] = item.product_name;
+        });
+
         /* Pre-fill search input if editing existing */
         if (prefill.customer_id) {
           usedIds.add(parseInt(prefill.customer_id));
@@ -203,6 +239,7 @@
 
         attachSectionEvents(section, ci, items.length);
         attachSearchable(section, ci);
+        refreshSectionSelects(section);
         recalcCustomer(section);
         recalcGrand();
       }
@@ -254,6 +291,18 @@
         });
       }
 
+      function refreshSectionSelects(section) {
+        var usedMap = section._usedProducts || {};
+        var allUsed = new Set(Object.values(usedMap));
+        section.querySelectorAll('.items-body tr').forEach(function(row) {
+          var sel = row.querySelector('.product-name-select');
+          if (!sel) return;
+          var ri  = parseInt(row.dataset.item);
+          var cur = usedMap[ri] || '';
+          sel.innerHTML = buildProductOptions(cur, allUsed);
+        });
+      }
+
       function attachSectionEvents(section, ci, nextIi) {
         section.querySelector('.remove-customer-btn').addEventListener('click', function() {
           var prev = parseInt(section.dataset.selectedId) || 0;
@@ -277,9 +326,13 @@
           if (!btn) return;
           var rows = section.querySelectorAll('.items-body tr');
           if (rows.length <= 1) return;
-          btn.closest('tr').remove();
+          var row = btn.closest('tr');
+          var ri  = parseInt(row.dataset.item);
+          if (section._usedProducts) delete section._usedProducts[ri];
+          row.remove();
           recalcCustomer(section);
           recalcGrand();
+          refreshSectionSelects(section);
         });
 
         attachRowEvents(section);
@@ -299,8 +352,24 @@
             recalcCustomer(section);
             recalcGrand();
           }
-          price.addEventListener('input', calcRow);
           qty.addEventListener('input', calcRow);
+
+          var sel = row.querySelector('.product-name-select');
+          if (sel && !sel._bound) {
+            sel._bound = true;
+            sel.addEventListener('change', function() {
+              var opt     = sel.options[sel.selectedIndex];
+              var ri      = parseInt(row.dataset.item);
+              var newName = opt.value;
+              if (!section._usedProducts) section._usedProducts = {};
+              delete section._usedProducts[ri];
+              if (newName) section._usedProducts[ri] = newName;
+              var p = parseFloat(opt.dataset.price) || 0;
+              price.value = p > 0 ? p.toFixed(2) : '';
+              calcRow();
+              refreshSectionSelects(section);
+            });
+          }
         });
       }
 

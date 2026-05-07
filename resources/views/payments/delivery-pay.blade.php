@@ -23,7 +23,7 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Submit Delivery Payment</h2>
-            <p>For <strong>{{ $allocation->delivery->delivery_number }}</strong> — {{ $allocation->customer->name ?? '—' }}
+            <p>For <strong>{{ $allocation->delivery->delivery_number }}</strong> - {{ $allocation->customer->name ?? '-' }}
               @if ($allocation->customer->shop_name)
                 <span style="color:var(--text-soft);">({{ $allocation->customer->shop_name }})</span>
               @endif
@@ -63,7 +63,7 @@
             </div>
             <div>
               <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Customer</p>
-              <p style="font-weight:600; margin:0;">{{ $allocation->customer->name ?? '—' }}</p>
+              <p style="font-weight:600; margin:0;">{{ $allocation->customer->name ?? '-' }}</p>
             </div>
             <div>
               <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Delivery Status</p>

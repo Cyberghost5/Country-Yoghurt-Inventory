@@ -25,7 +25,7 @@
           <img src="{{ asset('assets/img/logo.png') }}" alt="App Logo" style="height: 48px; width: 48px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);" />
           <div>
             <h1>Country Yoghurt</h1>
-            <p>Premium Dairy &bull; Northern Nigeria</p>
+            <p>Premium Dairy </p>
           </div>
         </div>
 

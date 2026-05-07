@@ -65,7 +65,7 @@ class ProductSeeder extends Seeder
                 'quantity'      => 50,
                 'reorder_level' => 10,
                 'supplier_name' => 'Country Yoghurt',
-                'notes'         => 'Chilled — store below 8°C',
+                'notes'         => 'Chilled - store below 8°C',
             ],
             [
                 'name'          => 'Chocolate Yoghurt',
@@ -93,7 +93,7 @@ class ProductSeeder extends Seeder
                 'quantity'      => 50,
                 'reorder_level' => 10,
                 'supplier_name' => 'Country Yoghurt',
-                'notes'         => 'Currently out of stock — reorder pending',
+                'notes'         => 'Currently out of stock - reorder pending',
             ],
             [
                 'name'          => 'Zobo Yoghurt',

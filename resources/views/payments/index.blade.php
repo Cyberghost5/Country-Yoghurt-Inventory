@@ -104,7 +104,7 @@
                           {{ $payment->deliveryAllocation->delivery->delivery_number }}
                         </a>
                       @else
-                        <span style="color:var(--text-soft); font-size:0.82rem;">{{ $payment->reason ? Str::limit($payment->reason, 30) : '—' }}</span>
+                        <span style="color:var(--text-soft); font-size:0.82rem;">{{ $payment->reason ? Str::limit($payment->reason, 30) : '-' }}</span>
                       @endif
                     </td>
                     <td class="ord-amount">{{ number_format($payment->amount, 2) }}</td>

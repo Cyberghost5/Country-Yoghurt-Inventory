@@ -12,8 +12,9 @@ class PaymentNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public readonly string  $type,    // submitted | approved | rejected
+        public readonly string  $type,    // submitted | approved | rejected | admin_approved
         public readonly Payment $payment,
+        public readonly string  $approverName = '',
     ) {}
 
     public function via(object $notifiable): array
@@ -58,11 +59,12 @@ class PaymentNotification extends Notification
         }
 
         return match ($this->type) {
-            'submitted' => "A new payment of {$amount} {$ref} has been submitted and awaits review.",
-            'approved'  => "Your payment of {$amount} {$ref} has been approved.",
-            'rejected'  => "Your payment of {$amount} {$ref} has been rejected." .
-                           ($this->payment->rejection_reason ? " Reason: {$this->payment->rejection_reason}" : ''),
-            default     => "Payment of {$amount} status updated.",
+            'submitted'      => "A new payment of {$amount} {$ref} has been submitted and awaits review.",
+            'approved'       => "Your payment of {$amount} {$ref} has been approved.",
+            'rejected'       => "Your payment of {$amount} {$ref} has been rejected." .
+                               ($this->payment->rejection_reason ? " Reason: {$this->payment->rejection_reason}" : ''),
+            'admin_approved' => "{$this->approverName} approved a payment of {$amount} {$ref}.",
+            default          => "Payment of {$amount} status updated.",
         };
     }
 
@@ -71,10 +73,11 @@ class PaymentNotification extends Notification
         $amount = '₦' . number_format($this->payment->amount, 2);
 
         return match ($this->type) {
-            'submitted' => "New Payment of {$amount} Submitted",
-            'approved'  => "Payment of {$amount} Approved",
-            'rejected'  => "Payment of {$amount} Rejected",
-            default     => "Payment Updated",
+            'submitted'      => "New Payment of {$amount} Submitted",
+            'approved'       => "Payment of {$amount} Approved",
+            'rejected'       => "Payment of {$amount} Rejected",
+            'admin_approved' => "Payment of {$amount} Approved by Admin",
+            default          => "Payment Updated",
         };
     }
 }

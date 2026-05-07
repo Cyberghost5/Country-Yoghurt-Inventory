@@ -126,23 +126,23 @@
               <div class="cust-detail-grid">
                 <div class="cust-detail-item">
                   <span class="cust-detail-label">Email</span>
-                  <span class="cust-detail-value">{{ $customer->email ?: '—' }}</span>
+                  <span class="cust-detail-value">{{ $customer->email ?: '-' }}</span>
                 </div>
                 <div class="cust-detail-item">
                   <span class="cust-detail-label">Phone</span>
-                  <span class="cust-detail-value">{{ $customer->phone ?: '—' }}</span>
+                  <span class="cust-detail-value">{{ $customer->phone ?: '-' }}</span>
                 </div>
                 <div class="cust-detail-item">
                   <span class="cust-detail-label">State</span>
-                  <span class="cust-detail-value">{{ $customer->state ?: '—' }}</span>
+                  <span class="cust-detail-value">{{ $customer->state ?: '-' }}</span>
                 </div>
                 <div class="cust-detail-item">
                   <span class="cust-detail-label">LGA</span>
-                  <span class="cust-detail-value">{{ $customer->lga ?: '—' }}</span>
+                  <span class="cust-detail-value">{{ $customer->lga ?: '-' }}</span>
                 </div>
                 <div class="cust-detail-item" style="grid-column: span 2;">
                   <span class="cust-detail-label">Address</span>
-                  <span class="cust-detail-value">{{ $customer->address ?: '—' }}</span>
+                  <span class="cust-detail-value">{{ $customer->address ?: '-' }}</span>
                 </div>
                 <div class="cust-detail-item">
                   <span class="cust-detail-label">Member Since</span>
@@ -268,7 +268,7 @@
               <tbody>
                 @forelse($payments as $p)
                   <tr>
-                    <td>{{ $p->payment_number ?: '—' }}</td>
+                    <td>{{ $p->payment_number ?: '-' }}</td>
                     <td>
                       @if ($p->order)
                         <a href="{{ route('orders.show', $p->order_id) }}" style="color:var(--primary);text-decoration:none;">
@@ -281,7 +281,7 @@
                       @elseif ($p->reason)
                         <span style="color:var(--text-soft);font-size:0.82rem;">{{ Str::limit($p->reason, 30) }}</span>
                       @else
-                        <span style="color:var(--text-soft);">—</span>
+                        <span style="color:var(--text-soft);">-</span>
                       @endif
                     </td>
                     <td>&#8358;{{ number_format($p->amount, 2) }}</td>
@@ -330,11 +330,11 @@
               <tbody>
                 @forelse($deliveries as $d)
                   <tr>
-                    <td><strong>{{ $d->delivery->delivery_number ?? '—' }}</strong></td>
+                    <td><strong>{{ $d->delivery->delivery_number ?? '-' }}</strong></td>
                     <td>{{ $d->items->count() }} item(s)</td>
                     <td>&#8358;{{ number_format($d->total_amount, 2) }}</td>
-                    <td>{{ $d->delivery?->staff?->name ?? '—' }}</td>
-                    <td>{{ $d->delivery?->scheduled_at ? $d->delivery->scheduled_at->format('d M Y') : '—' }}</td>
+                    <td>{{ $d->delivery?->staff?->name ?? '-' }}</td>
+                    <td>{{ $d->delivery?->scheduled_at ? $d->delivery->scheduled_at->format('d M Y') : '-' }}</td>
                     <td>
                       <span class="status-pill
                         {{ match($d->delivery?->status) {
@@ -342,7 +342,7 @@
                           'dispatched' => 'pill-approved',
                           'completed' => 'pill-delivered',
                           default     => ''
-                        } }}">{{ ucfirst($d->delivery?->status ?? '—') }}</span>
+                        } }}">{{ ucfirst($d->delivery?->status ?? '-') }}</span>
                     </td>
                     <td><a href="{{ route('deliveries.show', $d->delivery_id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a></td>
                   </tr>

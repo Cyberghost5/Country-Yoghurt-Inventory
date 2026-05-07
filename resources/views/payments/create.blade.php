@@ -73,7 +73,7 @@
                 </div>
                 <div>
                   <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Customer</p>
-                  <p style="font-weight:600; margin:0;">{{ $order->user->name ?? '—' }}</p>
+                  <p style="font-weight:600; margin:0;">{{ $order->user->name ?? '-' }}</p>
                 </div>
                 <div>
                   <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Order Total</p>
@@ -110,7 +110,7 @@
                     <option value="">- Select customer -</option>
                     @foreach ($customers as $c)
                       <option value="{{ $c->id }}">
-                        {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                        {{ $c->name }}{{ $c->shop_name ? ' - ' . $c->shop_name : '' }} ({{ $c->state }})
                       </option>
                     @endforeach
                   </select>

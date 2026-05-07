@@ -37,7 +37,7 @@
           <div class="lp-brand-icon"><img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt" /></div>
           <div>
             <h1>Country Yoghurt</h1>
-            <p>Premium Dairy &bull; Northern Nigeria</p>
+            <p>Premium Dairy </p>
           </div>
         </div>
 

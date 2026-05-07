@@ -93,6 +93,46 @@
 
           {{-- Row 1: Users --}}
           <section class="kpi-grid" style="margin-bottom: 12px;">            
+            <!-- <a href="{{ route('orders.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['approvedOrders'] }}</h4>
+              <small class="stat-label">Approved Orders</small>
+            </a> -->
+
+            @if ($user->role === 'super_admin')
+            <a href="{{ route('transactions.index') }}" class="stat-card success">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalRevenue'], 2) }}</h4>
+              <small class="stat-label">Total Revenue</small>
+            </a>
+            @endif
+
+            <a href="{{ route('admin.debts.index') }}" class="stat-card danger">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
+              </div>
+              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalDebt'], 2) }}</h4>
+              <small class="stat-label">Total Debt (Unpaid)</small>
+            </a>
+
+            @if ($user->role === 'super_admin')
+            <a href="{{ route('payments.index') }}" class="stat-card info">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $adminStats['totalPayments'] }}</h4>
+              <small class="stat-label">Total Payments
+                @if($adminStats['pendingPayments'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingPayments'] }} pending</span>
+                @endif
+              </small>
+            </a>
+            @endif
+
             <a href="{{ route('orders.index') }}" class="stat-card">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-bag-check"></i></span>
@@ -105,43 +145,25 @@
               </small>
             </a>
 
-            <!-- <a href="{{ route('orders.index') }}" class="stat-card success">
+            <a href="{{ route('deliveries.index') }}" class="stat-card">
               <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
+                <span class="mini-icon"><i class="bi bi-truck"></i></span>
               </div>
-              <h4 class="stat-value">{{ $adminStats['approvedOrders'] }}</h4>
-              <small class="stat-label">Approved Orders</small>
-            </a> -->
-
-            <a href="{{ route('payments.index') }}" class="stat-card info">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['totalPayments'] }}</h4>
-              <small class="stat-label">Total Payments
-                @if($adminStats['pendingPayments'] > 0)
-                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingPayments'] }} pending</span>
+              <h4 class="stat-value">{{ $adminStats['totalDeliveries'] }}</h4>
+              <small class="stat-label">Total Deliveries
+                @if($adminStats['pendingDeliveries'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingDeliveries'] }} pending</span>
                 @endif
               </small>
             </a>
 
-            <a href="{{ route('transactions.index') }}" class="stat-card success">
+            <a href="{{ route('deliveries.index') }}" class="stat-card success">
               <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
+                <span class="mini-icon"><i class="bi bi-truck-front-fill"></i></span>
               </div>
-              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalRevenue'], 2) }}</h4>
-              <small class="stat-label">Total Revenue</small>
+              <h4 class="stat-value">{{ $adminStats['completedDeliveries'] }}</h4>
+              <small class="stat-label">Completed Deliveries</small>
             </a>
-
-            @if ($user->role === 'super_admin')
-            <a href="{{ route('admin.debts.index') }}" class="stat-card danger">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
-              </div>
-              <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalDebt'], 2) }}</h4>
-              <small class="stat-label">Total Debt (Unpaid)</small>
-            </a>
-            @endif
 
             <a href="{{ route('admin.staff.index') }}" class="stat-card">
               <div class="stat-top">
@@ -178,26 +200,6 @@
                 @endif
               </small>
             </a> -->
-            
-            <a href="{{ route('deliveries.index') }}" class="stat-card">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-truck"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['totalDeliveries'] }}</h4>
-              <small class="stat-label">Total Deliveries
-                @if($adminStats['pendingDeliveries'] > 0)
-                  &nbsp;<span class="badge-warn">{{ $adminStats['pendingDeliveries'] }} pending</span>
-                @endif
-              </small>
-            </a>
-
-            <a href="{{ route('deliveries.index') }}" class="stat-card success">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-truck-front-fill"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $adminStats['completedDeliveries'] }}</h4>
-              <small class="stat-label">Completed Deliveries</small>
-            </a>
 
             <!-- <a href="{{ route('admin.inventory.index') }}" class="stat-card warn">
               <div class="stat-top">
@@ -215,12 +217,12 @@
               <small class="stat-label">Out of Stock</small>
             </a> -->
 
-            <a href="{{ route('admin.sms.index') }}" class="stat-card sms-balance-card">
+            <a href="{{ route('admin.sms.index') }}" class="stat-card success">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-wallet2"></i></span>
               </div>
-              <h4 class="stat-value sms-balance-stat-value">
-                {{ $smsBalance ? $smsBalance['formatted'] : '—' }}
+              <h4 class="stat-value">
+                {{ $smsBalance ? $smsBalance['formatted'] : '-' }}
               </h4>
               <small class="stat-label">SMS Wallet Balance</small>
             </a>
@@ -355,6 +357,28 @@
         {{-- ── Customer analytics ───────────────────────── --}}
         @if ($user->role === 'customer' && $customerStats)
 
+          {{-- ── Fraud warning marquee ── --}}
+          <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:8px; padding:10px 14px; margin-bottom:16px; display:flex; align-items:center; gap:10px; overflow:hidden;">
+            <i class="bi bi-exclamation-triangle-fill" style="color:#d97706; font-size:1.1rem; flex-shrink:0;"></i>
+            <div style="overflow:hidden; width:100%;">
+              <marquee behavior="scroll" direction="left" scrollamount="4" style="font-size:0.85rem; color:#7c5000; font-weight:500;">
+                ⚠️ IMPORTANT: Only send payments to Country Yoghurt's official bank accounts.
+                Never pay any individual or unofficial account.
+                @if ($stateBankAccount)
+                  &nbsp;|&nbsp;
+                  Your state ({{ $stateBankAccount->state }}) account:
+                  <strong>{{ $stateBankAccount->bank_name }}</strong> &mdash;
+                  <strong>{{ $stateBankAccount->account_name }}</strong> &mdash;
+                  <strong>{{ $stateBankAccount->account_number }}</strong>
+                @else
+                  &nbsp;| Contact us to confirm your state's official account details before making any payment.
+                @endif
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⚠️ IMPORTANT: Only send payments to Country Yoghurt's official bank accounts.
+                Never pay any individual or unofficial account.
+              </marquee>
+            </div>
+          </div>
+
           <section class="kpi-grid" style="margin-bottom: 12px;">
             <a href="{{ route('orders.index') }}" class="stat-card">
               <div class="stat-top">
@@ -487,5 +511,38 @@
         }
       }
     </script>
+
+    {{-- ── One-time login warning modal (customers only) ── --}}
+    @if (session('show_login_modal') && $user->role === 'customer')
+    <div id="loginWarningOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;">
+      <div style="background:#fff;border-radius:14px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.22);overflow:hidden;">
+        <div style="background:#dc2626;padding:18px 22px;display:flex;align-items:center;gap:12px;">
+          <i class="bi bi-shield-exclamation" style="font-size:1.6rem;color:#fff;"></i>
+          <span style="color:#fff;font-weight:700;font-size:1.05rem;">Important Security Notice</span>
+        </div>
+        <div style="padding:22px 24px;">
+          <p style="font-size:0.97rem;color:#1a1a1a;line-height:1.6;margin:0 0 14px;">
+            <strong>Please read carefully before making any payment.</strong>
+          </p>
+          <p style="font-size:0.93rem;color:#444;line-height:1.65;margin:0 0 14px;">
+            Country Yoghurt will <strong>never</strong> ask you to send money to a personal account or any number
+            not officially listed here. Always verify bank details directly on this platform before transferring funds.
+          </p>
+          <p style="font-size:0.93rem;color:#444;line-height:1.65;margin:0 0 20px;">
+            If anyone contacts you claiming to be from Country Yoghurt and requests payment to a different account,
+            <strong>do not pay</strong> - report it to us immediately.
+          </p>
+          <button id="loginWarningClose" class="primary-btn" style="width:100%;">
+            <i class="bi bi-check-circle"></i> I Understand
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.getElementById('loginWarningClose').addEventListener('click', function() {
+        document.getElementById('loginWarningOverlay').style.display = 'none';
+      });
+    </script>
+    @endif
   </body>
 </html>

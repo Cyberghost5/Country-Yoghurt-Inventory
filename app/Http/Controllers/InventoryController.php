@@ -19,38 +19,14 @@ class InventoryController extends Controller
 
         // Search
         if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('supplier_name', 'like', "%{$search}%");
-            });
-        }
-
-        // Category filter
-        if ($category = $request->input('category')) {
-            $query->where('category', $category);
-        }
-
-        // Status filter
-        if ($status = $request->input('status')) {
-            if ($status === 'in_stock') {
-                $query->whereRaw('quantity > reorder_level');
-            } elseif ($status === 'low_stock') {
-                $query->where('quantity', '>', 0)->whereRaw('quantity <= reorder_level');
-            } elseif ($status === 'out_of_stock') {
-                $query->where('quantity', 0);
-            }
+            $query->where('name', 'like', "%{$search}%");
         }
 
         $products = $query->orderBy('name')->get();
 
         // KPI stats
         $stats = [
-            'total_products'  => Product::count(),
-            'total_units'     => (int) Product::sum('quantity'),
-            'low_stock'       => Product::where('quantity', '>', 0)->whereRaw('quantity <= reorder_level')->count(),
-            'out_of_stock'    => Product::where('quantity', 0)->count(),
-            'total_value'     => Product::selectRaw('SUM(cost_price * quantity) as val')->value('val') ?? 0,
+            'total_products' => Product::count(),
         ];
 
         return view('admin.inventory.index', compact('user', 'products', 'stats'));
@@ -62,24 +38,10 @@ class InventoryController extends Controller
         $this->ensureAdminOrStaff($request);
 
         $data = $request->validate([
-            'name'           => 'required|string|max:255',
-            'sku'            => 'nullable|string|max:100|unique:products,sku',
-            'category'       => 'required|in:yoghurt,accessories,packaging,others',
-            'flavor'         => 'nullable|string|max:100',
-            'size_label'     => 'nullable|string|max:50',
-            'unit'           => 'required|in:carton,pack,piece,litre',
-            'cost_price'     => 'required|numeric|min:0',
-            'selling_price'  => 'required|numeric|min:0',
-            'quantity'       => 'required|integer|min:0',
-            'reorder_level'  => 'required|integer|min:0',
-            'supplier_name'  => 'nullable|string|max:255',
-            'notes'          => 'nullable|string|max:1000',
+            'name'          => 'required|string|max:255',
+            'unit'          => 'required|in:carton,pack,piece,litre',
+            'selling_price' => 'required|numeric|min:0',
         ]);
-
-        // Auto-generate SKU if not provided
-        if (empty($data['sku'])) {
-            $data['sku'] = $this->generateSku($data['category'], $data['name']);
-        }
 
         $data['created_by'] = $request->user()->id;
 
@@ -95,18 +57,9 @@ class InventoryController extends Controller
         $this->ensureAdminOrStaff($request);
 
         $data = $request->validate([
-            'name'           => 'required|string|max:255',
-            'sku'            => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
-            'category'       => 'required|in:yoghurt,accessories,packaging,others',
-            'flavor'         => 'nullable|string|max:100',
-            'size_label'     => 'nullable|string|max:50',
-            'unit'           => 'required|in:carton,pack,piece,litre',
-            'cost_price'     => 'required|numeric|min:0',
-            'selling_price'  => 'required|numeric|min:0',
-            'quantity'       => 'required|integer|min:0',
-            'reorder_level'  => 'required|integer|min:0',
-            'supplier_name'  => 'nullable|string|max:255',
-            'notes'          => 'nullable|string|max:1000',
+            'name'          => 'required|string|max:255',
+            'unit'          => 'required|in:carton,pack,piece,litre',
+            'selling_price' => 'required|numeric|min:0',
         ]);
 
         $product->update($data);

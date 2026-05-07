@@ -187,7 +187,7 @@
                       <tr>
                         <td><strong>&#8358;{{ number_format($pmt->amount, 2) }}</strong></td>
                         <td>{{ ucwords(str_replace('_', ' ', $pmt->payment_method)) }}</td>
-                        <td>{{ $pmt->payment_number ?: '—' }}</td>
+                        <td>{{ $pmt->payment_number ?: '-' }}</td>
                         <td>
                           <span class="pay-status-badge {{ $pmt->status_css }}">{{ $pmt->status_label }}</span>
                         </td>

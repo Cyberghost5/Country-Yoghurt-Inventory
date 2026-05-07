@@ -50,7 +50,7 @@
                 <option value="">- Select customer -</option>
                 @foreach ($customers as $c)
                   <option value="{{ $c->id }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>
-                    {{ $c->name }}{{ $c->shop_name ? ' — ' . $c->shop_name : '' }} ({{ $c->state }})
+                    {{ $c->name }}{{ $c->shop_name ? ' - ' . $c->shop_name : '' }} ({{ $c->state }})
                   </option>
                 @endforeach
               </select>
@@ -88,14 +88,15 @@
                 <div class="ord-item-grid">
                   <div class="ord-item-field ord-item-product">
                     <label>Product</label>
-                    <input type="text" name="items[0][product_name]" class="inv-field-input product-name-input"
-                           placeholder="Product name" required />
+                    <select name="items[0][product_name]" class="inv-field-input product-name-select" required>
+                      <option value="">- Select product -</option>
+                    </select>
                   </div>
 
                   <div class="ord-item-field ord-item-price">
                     <label>Unit Price (₦)</label>
                     <input type="number" name="items[0][unit_price]" class="inv-field-input price-input"
-                           min="0.01" step="0.01" placeholder="0.00" required />
+                           min="0.01" step="0.01" placeholder="0.00" readonly style="background:#f5f3ef; cursor:default;" />
                   </div>
 
                   <div class="ord-item-field ord-item-qty">
@@ -152,6 +153,15 @@
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
+    @php
+      $productsJson = $products->map(fn ($p) => [
+          'id'    => $p->id,
+          'name'  => $p->name,
+          'unit'  => $p->unit,
+          'price' => (float) $p->selling_price,
+      ])->values();
+    @endphp
+
     <script>
       /* ── Sidebar toggle ── */
       (function() {
@@ -167,7 +177,35 @@
       })();
 
       /* ── Order form logic ── */
+      var PRODUCTS = @json($productsJson);
+
+      function buildProductOptions(selected, excludeNames) {
+        selected     = selected || '';
+        excludeNames = excludeNames || new Set();
+        var opts = '<option value="">\u2014 Select product \u2014</option>';
+        PRODUCTS.forEach(function(p) {
+          if (excludeNames.has(p.name) && p.name !== selected) return;
+          var isSel = p.name === selected ? ' selected' : '';
+          opts += '<option value="' + p.name + '" data-price="' + p.price + '"' + isSel + '>' +
+                  p.name + ' (' + p.unit.charAt(0).toUpperCase() + p.unit.slice(1) + ')' +
+                  '</option>';
+        });
+        return opts;
+      }
+
       let rowIndex = 0;
+      var usedProducts = {}; // { rowIndex: productName }
+
+      function refreshAllOrderSelects() {
+        var allUsed = new Set(Object.values(usedProducts));
+        document.querySelectorAll('.ord-item-row').forEach(function(r) {
+          var sel = r.querySelector('.product-name-select');
+          if (!sel) return;
+          var ri  = parseInt(r.dataset.row);
+          var cur = usedProducts[ri] || '';
+          sel.innerHTML = buildProductOptions(cur, allUsed);
+        });
+      }
 
       function addRow() {
         rowIndex++;
@@ -178,11 +216,11 @@
           <div class="ord-item-grid">
             <div class="ord-item-field ord-item-product">
               <label>Product</label>
-              <input type="text" name="items[${rowIndex}][product_name]" class="inv-field-input product-name-input" placeholder="Product name" required />
+              <select name="items[${rowIndex}][product_name]" class="inv-field-input product-name-select" required>${buildProductOptions()}</select>
             </div>
             <div class="ord-item-field ord-item-price">
               <label>Unit Price (₦)</label>
-              <input type="number" name="items[${rowIndex}][unit_price]" class="inv-field-input price-input" min="0.01" step="0.01" placeholder="0.00" required />
+              <input type="number" name="items[${rowIndex}][unit_price]" class="inv-field-input price-input" min="0.01" step="0.01" placeholder="0.00" readonly style="background:#f5f3ef; cursor:default;" />
             </div>
             <div class="ord-item-field ord-item-qty">
               <label>Qty</label>
@@ -218,14 +256,33 @@
           recalcTotal();
         }
 
-        priceInput.addEventListener('input', updateRow);
         qtyInput.addEventListener('input', updateRow);
 
         removeBtn.addEventListener('click', function() {
           if (document.querySelectorAll('.ord-item-row').length <= 1) return;
+          var ri = parseInt(row.dataset.row);
+          delete usedProducts[ri];
           row.remove();
           recalcTotal();
+          refreshAllOrderSelects();
         });
+
+        const productSel = row.querySelector('.product-name-select');
+        if (productSel) {
+          productSel.addEventListener('change', function() {
+            var ri      = parseInt(row.dataset.row);
+            var opt     = productSel.options[productSel.selectedIndex];
+            var newName = opt.value;
+            // Free old selection, register new
+            delete usedProducts[ri];
+            if (newName) usedProducts[ri] = newName;
+            // Set canonical price from option
+            var price = parseFloat(opt.dataset.price) || 0;
+            priceInput.value = price > 0 ? price.toFixed(2) : '';
+            updateRow();
+            refreshAllOrderSelects();
+          });
+        }
       }
 
       function recalcTotal() {
@@ -247,6 +304,7 @@
       const addRowBtn = document.getElementById('addRowBtn');
       if (addRowBtn) {
         document.querySelectorAll('.ord-item-row').forEach(attachRowEvents);
+        refreshAllOrderSelects();
         addRowBtn.addEventListener('click', addRow);
       }
     </script>

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}" />
     <link rel="icon" type="image/png" href="{{ asset('assets/img/logo.png') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   </head>
   <body>
     @include('partials._mobile_topbar')
@@ -162,6 +163,78 @@
         </div>
 
         {{-- ════════════════════════════════════════════════════════ --}}
+        {{-- ── Section: Visual Analytics (Charts) ────────────────  --}}
+        {{-- ════════════════════════════════════════════════════════ --}}
+        <div class="rpt-section-title">
+          <i class="bi bi-pie-chart"></i> Visual Analytics
+        </div>
+
+        {{-- Trend over time – full-width bar chart with controls --}}
+        <div class="rpt-card" style="margin-bottom:20px;">
+          <div class="rpt-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>Trend Over Time</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="trendGroupBy" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="daily">Daily</option>
+              </select>
+              <select id="trendMetric" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
+                <option value="revenue">Revenue Collected</option>
+                <option value="order_value">Order Value</option>
+                <option value="orders">Order Count</option>
+              </select>
+            </div>
+          </div>
+          <div class="rpt-card-body" style="padding:16px;" id="chartRevenueTrendWrap">
+            <canvas id="chartRevenueTrend" style="max-height:280px;"></canvas>
+          </div>
+        </div>
+
+        {{-- Status donut + Payment method donut --}}
+        <div class="rpt-two-col" style="margin-bottom:20px;">
+          <div class="rpt-card">
+            <div class="rpt-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span>Status Breakdown</span>
+              <select id="statusEntity" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
+                <option value="orders">Orders</option>
+                <option value="deliveries">Deliveries</option>
+              </select>
+            </div>
+            <div class="rpt-card-body" style="padding:16px;display:flex;justify-content:center;" id="chartOrderStatusWrap">
+              <canvas id="chartOrderStatus" style="max-height:260px;max-width:260px;"></canvas>
+            </div>
+          </div>
+          <div class="rpt-card">
+            <div class="rpt-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span>Payment Methods</span>
+              <select id="methodMetric" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
+                <option value="revenue">By Revenue (₦)</option>
+                <option value="count">By Count</option>
+              </select>
+            </div>
+            <div class="rpt-card-body" style="padding:16px;display:flex;justify-content:center;" id="chartPaymentMethodWrap">
+              <canvas id="chartPaymentMethod" style="max-height:260px;max-width:260px;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        {{-- Top products – full width with metric toggle --}}
+        <div class="rpt-card" style="margin-bottom:28px;">
+          <div class="rpt-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>Top Products</span>
+            <select id="productMetric" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
+              <option value="revenue">By Revenue (₦)</option>
+              <option value="qty">By Quantity Sold</option>
+              <option value="orders">By Order Count</option>
+            </select>
+          </div>
+          <div class="rpt-card-body" style="padding:16px;display:flex;justify-content:center;" id="chartProductRevenueWrap">
+            <canvas id="chartProductRevenue" style="max-height:300px;max-width:480px;"></canvas>
+          </div>
+        </div>
+
+        {{-- ════════════════════════════════════════════════════════ --}}
         {{-- ── Section 2: Orders Breakdown ─────────────────────── --}}
         {{-- ════════════════════════════════════════════════════════ --}}
         <div class="rpt-section-title">
@@ -219,7 +292,7 @@
                   <tbody>
                     @foreach ($ordersByState as $row)
                       <tr>
-                        <td>{{ $row->state ?? '—' }}</td>
+                        <td>{{ $row->state ?? '-' }}</td>
                         <td class="ta-right">{{ number_format($row->order_count) }}</td>
                         <td class="ta-right">{{ number_format($row->total_value, 2) }}</td>
                       </tr>
@@ -403,7 +476,7 @@
                     @foreach ($staffPerformance as $row)
                       <tr>
                         <td>{{ $row->staff_name }}</td>
-                        <td>{{ $row->state ?? '—' }}</td>
+                        <td>{{ $row->state ?? '-' }}</td>
                         <td class="ta-right">{{ $row->total_deliveries }}</td>
                         <td class="ta-right" style="color:#27ae60;font-weight:600;">{{ $row->completed }}</td>
                         <td class="ta-right" style="color:#e67e22;">{{ $row->pending }}</td>
@@ -487,7 +560,7 @@
                             <br><span class="rpt-muted">{{ $row->shop_name }}</span>
                           @endif
                         </td>
-                        <td>{{ $row->state ?? '—' }}</td>
+                        <td>{{ $row->state ?? '-' }}</td>
                         <td class="ta-right">{{ number_format($row->order_count) }}</td>
                         <td class="ta-right">{{ number_format($row->total_value, 2) }}</td>
                       </tr>
@@ -529,7 +602,7 @@
                           {{ $order->order_number }}
                         </a>
                       </td>
-                      <td>{{ $order->user->name ?? '—' }}</td>
+                      <td>{{ $order->user->name ?? '-' }}</td>
                       <td>
                         <span class="ord-status-badge ord-status-{{ $order->status }}">
                           {{ $order->status_label }}
@@ -574,7 +647,7 @@
                           {{ $dlv->delivery_number }}
                         </a>
                       </td>
-                      <td>{{ $dlv->staff->name ?? '—' }}</td>
+                      <td>{{ $dlv->staff->name ?? '-' }}</td>
                       <td>{{ $dlv->allocations_count ?? $dlv->allocations->count() }}</td>
                       <td>
                         <span class="ord-status-badge {{ $dlv->status_css }}">
@@ -582,7 +655,7 @@
                         </span>
                       </td>
                       <td class="ta-right">{{ number_format($dlv->totalAmount(), 2) }}</td>
-                      <td>{{ $dlv->scheduled_at ? $dlv->scheduled_at->format('d M Y') : '—' }}</td>
+                      <td>{{ $dlv->scheduled_at ? $dlv->scheduled_at->format('d M Y') : '-' }}</td>
                     </tr>
                   @endforeach
                 </tbody>
@@ -601,6 +674,148 @@
         if (custom) custom.style.display = (val === 'custom') ? 'flex' : 'none';
         if (val !== 'custom') document.getElementById('reportFilterForm').submit();
       }
+    </script>
+    <script>
+    (function () {
+      var palette = ['#4e8c4a','#f5a623','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#10b981'];
+
+      var TIME_SERIES     = @json($chartTimeSeries);
+      var STATUS_DATA     = { orders: @json($chartOrderStatus), deliveries: @json($chartDeliveryStatus) };
+      var METHOD_DATA     = @json($chartPaymentMethod);
+      var PRODUCT_DATA    = @json($chartProductRevenue);
+
+      var trendChart, statusChart, methodChart, productChart;
+
+      function resetCanvas(wrapId, canvasId, style) {
+        document.getElementById(wrapId).innerHTML = '<canvas id="' + canvasId + '" style="' + style + '"></canvas>';
+        return document.getElementById(canvasId);
+      }
+      function showEmpty(wrapId, msg) {
+        document.getElementById(wrapId).innerHTML =
+          '<p style="color:#aaa;font-size:0.87rem;text-align:center;padding:28px 0;">' + (msg || 'No data for this period.') + '</p>';
+      }
+
+      // ── Trend bar chart ──────────────────────────────────────────
+      function buildTrend() {
+        var grp    = document.getElementById('trendGroupBy').value;
+        var metric = document.getElementById('trendMetric').value;
+        var series = TIME_SERIES[grp][metric];
+        var labels = series.map(function (r) { return r.label; });
+        var data   = series.map(function (r) { return r.value; });
+        var isMoney = (metric !== 'orders');
+        var axisLabels = { revenue: 'Revenue Collected (₦)', order_value: 'Order Value (₦)', orders: 'Order Count' };
+
+        if (trendChart) { trendChart.destroy(); trendChart = null; }
+        if (!data.length) { showEmpty('chartRevenueTrendWrap', 'No data for the selected grouping and period.'); return; }
+
+        var canvas = resetCanvas('chartRevenueTrendWrap', 'chartRevenueTrend', 'max-height:280px;');
+        trendChart = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{ label: axisLabels[metric] || metric, data: data, backgroundColor: '#4e8c4a', borderRadius: 5 }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: function (v) { return isMoney ? '₦' + Number(v).toLocaleString() : Number(v).toLocaleString(); } }
+              }
+            }
+          }
+        });
+      }
+
+      // ── Status doughnut ──────────────────────────────────────────
+      function buildStatus() {
+        var entity = document.getElementById('statusEntity').value;
+        var d = STATUS_DATA[entity];
+        var total = d.data.reduce(function (a, b) { return a + b; }, 0);
+        if (statusChart) { statusChart.destroy(); statusChart = null; }
+        if (!total) { showEmpty('chartOrderStatusWrap', 'No data for this period.'); return; }
+        var canvas = resetCanvas('chartOrderStatusWrap', 'chartOrderStatus', 'max-height:260px;max-width:260px;');
+        statusChart = new Chart(canvas, {
+          type: 'doughnut',
+          data: { labels: d.labels, datasets: [{ data: d.data, backgroundColor: palette, borderWidth: 2 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      // ── Payment method doughnut ──────────────────────────────────
+      function buildMethod() {
+        var metric = document.getElementById('methodMetric').value;
+        var data = METHOD_DATA[metric];
+        var total = data.reduce(function (a, b) { return a + b; }, 0);
+        if (methodChart) { methodChart.destroy(); methodChart = null; }
+        if (!total) { showEmpty('chartPaymentMethodWrap', 'No approved payments in this period.'); return; }
+        var canvas = resetCanvas('chartPaymentMethodWrap', 'chartPaymentMethod', 'max-height:260px;max-width:260px;');
+        methodChart = new Chart(canvas, {
+          type: 'doughnut',
+          data: { labels: METHOD_DATA.labels, datasets: [{ data: data, backgroundColor: palette, borderWidth: 2 }] },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return metric === 'revenue'
+                      ? ctx.label + ': ₦' + Number(ctx.parsed).toLocaleString()
+                      : ctx.label + ': ' + ctx.parsed + ' transaction(s)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // ── Products pie ─────────────────────────────────────────────
+      function buildProduct() {
+        var metric = document.getElementById('productMetric').value;
+        var data   = PRODUCT_DATA[metric];
+        var total  = data.reduce(function (a, b) { return a + b; }, 0);
+        if (productChart) { productChart.destroy(); productChart = null; }
+        if (!total) { showEmpty('chartProductRevenueWrap', 'No product data for this period.'); return; }
+        var canvas = resetCanvas('chartProductRevenueWrap', 'chartProductRevenue', 'max-height:300px;max-width:480px;');
+        productChart = new Chart(canvas, {
+          type: 'pie',
+          data: { labels: PRODUCT_DATA.labels, datasets: [{ data: data, backgroundColor: palette, borderWidth: 2 }] },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'right' },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    var val   = ctx.parsed;
+                    var sum   = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                    var pct   = sum > 0 ? (val / sum * 100).toFixed(1) : 0;
+                    var fmt   = metric === 'revenue' ? '₦' + Number(val).toLocaleString() : Number(val).toLocaleString();
+                    return ctx.label + ': ' + fmt + ' (' + pct + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Init
+      buildTrend();
+      buildStatus();
+      buildMethod();
+      buildProduct();
+
+      // Wire controls
+      document.getElementById('trendGroupBy').addEventListener('change', buildTrend);
+      document.getElementById('trendMetric').addEventListener('change', buildTrend);
+      document.getElementById('statusEntity').addEventListener('change', buildStatus);
+      document.getElementById('methodMetric').addEventListener('change', buildMethod);
+      document.getElementById('productMetric').addEventListener('change', buildProduct);
+    })();
     </script>
   </body>
 </html>

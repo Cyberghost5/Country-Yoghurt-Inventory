@@ -36,6 +36,8 @@ class LoginController extends Controller
 
         if ($user && Auth::attempt(['phone' => $user->phone, 'password' => $request->input('password')], $remember)) {
             $request->session()->regenerate();
+            // Flag for the one-time "send payment only to official account" modal
+            $request->session()->flash('show_login_modal', true);
             return redirect()->route('dashboard');
         }
 

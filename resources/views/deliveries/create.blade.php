@@ -94,6 +94,15 @@
       })->values();
     @endphp
 
+    @php
+      $productsJson = $products->map(fn ($p) => [
+          'id'    => $p->id,
+          'name'  => $p->name,
+          'unit'  => $p->unit,
+          'price' => (float) $p->selling_price,
+      ])->values();
+    @endphp
+
     <script>
     (function() {
       /* Sidebar toggle */
@@ -109,6 +118,21 @@
 
       /* Customer data */
       var CUSTOMERS = @json($customersJson);
+      var PRODUCTS  = @json($productsJson);
+
+      function buildProductOptions(selected, excludeNames) {
+        selected     = selected || '';
+        excludeNames = excludeNames || new Set();
+        var opts = '<option value="">\u2014 Select product \u2014</option>';
+        PRODUCTS.forEach(function(p) {
+          if (excludeNames.has(p.name) && p.name !== selected) return;
+          var isSel = p.name === selected ? ' selected' : '';
+          opts += '<option value="' + p.name + '" data-price="' + p.price + '"' + isSel + '>' +
+                  p.name + ' (' + p.unit.charAt(0).toUpperCase() + p.unit.slice(1) + ')' +
+                  '</option>';
+        });
+        return opts;
+      }
 
       var customerIndex = 0;
       var usedIds = new Set();
@@ -127,8 +151,8 @@
 
       function buildItemRow(ci, ii) {
         return '<tr data-item="' + ii + '">' +
-          '<td><input type="text" name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input" placeholder="e.g. Yoghurt 500ml" required /></td>' +
-          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" required /></td>' +
+          '<td><select name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input product-name-select" required>' + buildProductOptions() + '</select></td>' +
+          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" readonly style="background:#f5f3ef; cursor:default;" /></td>' +
           '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="1" required /></td>' +
           '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" /></td>' +
           '<td><button type="button" class="remove-btn remove-item-btn" title="Remove row"><i class="bi bi-trash3"></i></button></td>' +
@@ -151,7 +175,7 @@
           '</div>' +
           buildSearchableCustomer(ci) +
           '<div class="form-group" style="margin-bottom:10px;">' +
-            '<label class="form-label" style="font-size:0.82rem;">Allocation Date <span style="color:#aaa;">(optional — defaults to scheduled date)</span></label>' +
+            '<label class="form-label" style="font-size:0.82rem;">Allocation Date <span style="color:#aaa;">(optional - defaults to scheduled date)</span></label>' +
             '<input type="date" name="customers[' + ci + '][allocation_date]" class="form-input" value="' + (prefill.allocation_date || '') + '" />' +
           '</div>' +
           '<table class="dlv-items-table" style="margin-top:14px;">' +
@@ -163,6 +187,7 @@
             '<div class="dlv-customer-total">Customer Total: <span class="customer-total-value">\u20A60.00</span></div>' +
           '</div>';
         document.getElementById('customersWrapper').appendChild(section);
+        section._usedProducts = {};
         attachSectionEvents(section, ci);
         attachSearchable(section, ci);
         recalcGrand();
@@ -210,11 +235,33 @@
         }
 
         input.addEventListener('focus', function() { renderDropdown(input.value); });
-        input.addEventListener('input', function() { renderDropdown(input.value); hidden.value = ''; });
+        input.addEventListener('input', function() {
+          // Free previously confirmed selection so other slots can see it immediately
+          var prev = parseInt(section.dataset.selectedId) || 0;
+          if (prev) { usedIds.delete(prev); section.dataset.selectedId = ''; }
+          hidden.value = '';
+          renderDropdown(input.value);
+        });
         input.addEventListener('blur', function() {
           setTimeout(function() { dropdown.style.display = 'none'; }, 150);
-          // If no valid selection, clear input
-          if (!hidden.value) input.value = '';
+          if (!hidden.value) {
+            // No confirmed selection - release any reserved ID and clear visual
+            var prev = parseInt(section.dataset.selectedId) || 0;
+            if (prev) { usedIds.delete(prev); section.dataset.selectedId = ''; }
+            input.value = '';
+          }
+        });
+      }
+
+      function refreshSectionSelects(section) {
+        var usedMap = section._usedProducts || {};
+        var allUsed = new Set(Object.values(usedMap));
+        section.querySelectorAll('.items-body tr').forEach(function(row) {
+          var sel = row.querySelector('.product-name-select');
+          if (!sel) return;
+          var ri  = parseInt(row.dataset.item);
+          var cur = usedMap[ri] || '';
+          sel.innerHTML = buildProductOptions(cur, allUsed);
         });
       }
 
@@ -244,9 +291,13 @@
           if (!btn) return;
           var rows = section.querySelectorAll('.items-body tr');
           if (rows.length <= 1) return; // keep at least 1
-          btn.closest('tr').remove();
+          var row = btn.closest('tr');
+          var ri  = parseInt(row.dataset.item);
+          if (section._usedProducts) delete section._usedProducts[ri];
+          row.remove();
           recalcCustomer(section);
           recalcGrand();
+          refreshSectionSelects(section);
         });
 
         attachRowEvents(section);
@@ -266,8 +317,24 @@
             recalcCustomer(section);
             recalcGrand();
           }
-          price.addEventListener('input', calcRow);
           qty.addEventListener('input', calcRow);
+
+          var sel = row.querySelector('.product-name-select');
+          if (sel && !sel._bound) {
+            sel._bound = true;
+            sel.addEventListener('change', function() {
+              var opt     = sel.options[sel.selectedIndex];
+              var ri      = parseInt(row.dataset.item);
+              var newName = opt.value;
+              if (!section._usedProducts) section._usedProducts = {};
+              delete section._usedProducts[ri];
+              if (newName) section._usedProducts[ri] = newName;
+              var p = parseFloat(opt.dataset.price) || 0;
+              price.value = p > 0 ? p.toFixed(2) : '';
+              calcRow();
+              refreshSectionSelects(section);
+            });
+          }
         });
       }
 

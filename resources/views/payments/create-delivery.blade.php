@@ -56,7 +56,7 @@
                   <div>
                     <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 2px;">Delivery</p>
                     <p style="font-weight:700; font-size:1rem; margin:0; font-family:'Courier New',monospace;">
-                      {{ $alloc->delivery->delivery_number ?? '—' }}
+                      {{ $alloc->delivery->delivery_number ?? '-' }}
                     </p>
                   </div>
                   <span class="status-badge status-approved" style="font-size:0.73rem;">

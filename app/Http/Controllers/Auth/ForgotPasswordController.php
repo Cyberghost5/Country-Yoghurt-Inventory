@@ -98,7 +98,7 @@ class ForgotPasswordController extends Controller
             return back()->withErrors(['otp' => 'Invalid OTP. Please try again.']);
         }
 
-        // OTP valid — clean up and store a short-lived reset token in session
+        // OTP valid - clean up and store a short-lived reset token in session
         DB::table('password_reset_otps')->where('phone', $phone)->delete();
 
         $resetToken = bin2hex(random_bytes(32));

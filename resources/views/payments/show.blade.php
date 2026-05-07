@@ -67,7 +67,7 @@
           <div class="ord-meta-card">
             <p class="ord-meta-label">Payment No.</p>
             <p class="ord-meta-value" style="font-family:'Courier New',monospace; font-size:0.88rem;">
-              {{ $payment->payment_number ?? '—' }}
+              {{ $payment->payment_number ?? '-' }}
             </p>
           </div>
           <div class="ord-meta-card">

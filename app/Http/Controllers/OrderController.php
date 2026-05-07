@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\OrderNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
@@ -70,7 +71,9 @@ class OrderController extends Controller
                 ->get(['id', 'name', 'shop_name', 'state']);
         }
 
-        return view('orders.create', compact('user', 'customers'));
+        $products = Product::orderBy('name')->get(['id', 'name', 'unit', 'selling_price']);
+
+        return view('orders.create', compact('user', 'customers', 'products'));
     }
 
     /* ── AJAX stock check ── */
@@ -132,8 +135,7 @@ class OrderController extends Controller
 
         $request->validate([
             'items'                  => 'required|array|min:1',
-            'items.*.product_name'   => 'required|string|max:255',
-            'items.*.unit_price'     => 'required|numeric|min:0.01',
+            'items.*.product_name'   => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
             'items.*.quantity'       => 'required|integer|min:1',
             'notes'                  => 'nullable|string|max:1000',
             'customer_id'            => 'nullable|integer|exists:users,id',
@@ -148,13 +150,18 @@ class OrderController extends Controller
             $orderOwner = $customer;
         }
 
-        $rawItems    = $request->input('items');
+        $rawItems = $request->input('items');
+
+        // Always use canonical selling_price from DB - ignores any submitted unit_price
+        $priceMap = Product::whereIn('name', array_column($rawItems, 'product_name'))
+            ->pluck('selling_price', 'name');
+
         $itemRecords = [];
         $totalAmount = 0;
 
         foreach ($rawItems as $item) {
             $qty      = (int) $item['quantity'];
-            $price    = round((float) $item['unit_price'], 2);
+            $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
             $subtotal = round($price * $qty, 2);
             $itemRecords[] = [
                 'product_id'   => null,
@@ -305,6 +312,51 @@ class OrderController extends Controller
 
         return redirect()->route('orders.show', $order)
                          ->with('status', "Order {$order->order_number} marked as delivered.");
+    }
+
+    /* ── Delete single order (admin/staff) ── */
+    public function destroy(Request $request, Order $order)
+    {
+        $user = $request->user();
+        if (!$user->isAdminOrStaff()) abort(403);
+
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->where('state', $user->state)
+                ->pluck('id');
+            if (!$stateCustomerIds->contains($order->user_id)) abort(403);
+        }
+
+        $orderNumber = $order->order_number;
+        $order->items()->delete();
+        $order->payments()->delete();
+        $order->delete();
+
+        return redirect()->route('orders.index')
+                         ->with('status', "Order {$orderNumber} deleted.");
+    }
+
+    /* ── Delete all visible orders (admin/staff) ── */
+    public function destroyAll(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isAdminOrStaff()) abort(403);
+
+        if ($user->role === 'staff') {
+            $ids    = User::where('role', 'customer')->where('state', $user->state)->pluck('id');
+            $orders = Order::whereIn('user_id', $ids)->get();
+        } else {
+            $orders = Order::all();
+        }
+
+        foreach ($orders as $order) {
+            $order->items()->delete();
+            $order->payments()->delete();
+            $order->delete();
+        }
+
+        return redirect()->route('orders.index')
+                         ->with('status', 'All orders cleared.');
     }
 
     /* ── Helpers ── */

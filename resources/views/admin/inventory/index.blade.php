@@ -51,38 +51,8 @@
               <span class="trend-pill">All</span>
             </div>
             <h4 class="stat-value">{{ $stats['total_products'] }}</h4>
-            <p class="stat-unit">SKUs</p>
+            <p class="stat-unit">products</p>
             <small class="stat-label">Total Products</small>
-          </article>
-
-          <article class="stat-card info">
-            <div class="stat-top">
-              <span class="mini-icon"><i class="bi bi-layers"></i></span>
-              <span class="trend-pill">Live</span>
-            </div>
-            <h4 class="stat-value">{{ number_format($stats['total_units']) }}</h4>
-            <p class="stat-unit">units</p>
-            <small class="stat-label">Total Stock Units</small>
-          </article>
-
-          <article class="stat-card warn">
-            <div class="stat-top">
-              <span class="mini-icon"><i class="bi bi-exclamation-triangle"></i></span>
-              <span class="trend-pill danger">Alert</span>
-            </div>
-            <h4 class="stat-value">{{ $stats['low_stock'] }}</h4>
-            <p class="stat-unit">products</p>
-            <small class="stat-label">Low Stock</small>
-          </article>
-
-          <article class="stat-card danger">
-            <div class="stat-top">
-              <span class="mini-icon"><i class="bi bi-x-circle"></i></span>
-              <span class="trend-pill danger">Critical</span>
-            </div>
-            <h4 class="stat-value">{{ $stats['out_of_stock'] }}</h4>
-            <p class="stat-unit">products</p>
-            <small class="stat-label">Out of Stock</small>
           </article>
         </section>
 
@@ -92,28 +62,13 @@
             <label class="search-wrap inv-search" for="inv_search">
               <i class="bi bi-search search-icon"></i>
               <input id="inv_search" type="search" name="search"
-                     placeholder="Search name, SKU, supplier…"
+                     placeholder="Search product name…"
                      value="{{ request('search') }}" />
             </label>
 
-            <select name="category" class="inv-select">
-              <option value="">All Categories</option>
-              <option value="yoghurt"      {{ request('category') === 'yoghurt'      ? 'selected' : '' }}>Yoghurt</option>
-              <option value="accessories"  {{ request('category') === 'accessories'  ? 'selected' : '' }}>Accessories</option>
-              <option value="packaging"    {{ request('category') === 'packaging'    ? 'selected' : '' }}>Packaging</option>
-              <option value="others"       {{ request('category') === 'others'       ? 'selected' : '' }}>Others</option>
-            </select>
-
-            <select name="status" class="inv-select">
-              <option value="">All Status</option>
-              <option value="in_stock"     {{ request('status') === 'in_stock'     ? 'selected' : '' }}>In Stock</option>
-              <option value="low_stock"    {{ request('status') === 'low_stock'    ? 'selected' : '' }}>Low Stock</option>
-              <option value="out_of_stock" {{ request('status') === 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
-            </select>
-
             <button type="submit" class="ghost-btn">Apply</button>
 
-            @if (request('search') || request('category') || request('status'))
+            @if (request('search'))
               <a href="{{ route('admin.inventory.index') }}" class="ghost-btn">Clear</a>
             @endif
           </form>
@@ -127,70 +82,26 @@
             <table class="inv-table">
               <thead>
                 <tr>
-                  <th>SKU</th>
                   <th>Product</th>
-                  <th>Category</th>
-                  <th>Flavor / Size</th>
                   <th>Unit</th>
-                  <th>Cost (₦)</th>
                   <th>Price (₦)</th>
-                  <th>Qty</th>
-                  <th>Reorder</th>
-                  <th>Status</th>
-                  <th>Supplier</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 @forelse ($products as $product)
                   <tr>
-                    <td><span class="inv-sku">{{ $product->sku ?? '-' }}</span></td>
                     <td>
                       <span class="inv-name">{{ $product->name }}</span>
-                      @if ($product->notes)
-                        <small class="inv-note">{{ Str::limit($product->notes, 40) }}</small>
-                      @endif
-                    </td>
-                    <td><span class="inv-cat-badge inv-cat-{{ $product->category }}">{{ ucfirst($product->category) }}</span></td>
-                    <td>
-                      @if ($product->flavor || $product->size_label)
-                        {{ $product->flavor ? ucfirst($product->flavor) : '' }}
-                        {{ $product->flavor && $product->size_label ? ' · ' : '' }}
-                        {{ $product->size_label ?? '' }}
-                      @else
-                        <span class="inv-empty">-</span>
-                      @endif
                     </td>
                     <td>{{ ucfirst($product->unit) }}</td>
-                    <td>{{ number_format($product->cost_price, 2) }}</td>
                     <td>{{ number_format($product->selling_price, 2) }}</td>
-                    <td class="inv-qty {{ $product->stock_status }}">{{ $product->quantity }}</td>
-                    <td>{{ $product->reorder_level }}</td>
-                    <td>
-                      @php
-                        $statusLabels = [
-                          'in_stock'     => ['In Stock',  'inv-status-ok'],
-                          'low_stock'    => ['Low Stock', 'inv-status-warn'],
-                          'out_of_stock' => ['Out of Stock', 'inv-status-danger'],
-                        ];
-                        [$label, $cls] = $statusLabels[$product->stock_status];
-                      @endphp
-                      <span class="inv-status-badge {{ $cls }}">{{ $label }}</span>
-                    </td>
-                    <td>{{ $product->supplier_name ?? '-' }}</td>
                     <td>
                       <div class="inv-actions">
-                        {{-- Adjust stock --}}
-                        <button class="inv-action-btn"
-                                title="Adjust Stock"
-                                onclick="openAdjust({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->quantity }})">
-                          <i class="bi bi-plus-slash-minus"></i>
-                        </button>
-
                         {{-- Edit --}}
                         <button class="inv-action-btn"
                                 title="Edit"
-                                onclick="openEdit({{ json_encode($product->toArray()) }})">
+                                onclick="openEdit({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->unit }}', {{ $product->selling_price }})">
                           <i class="bi bi-pencil"></i>
                         </button>
 
@@ -207,7 +118,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="12" class="inv-empty-row">
+                    <td colspan="4" class="inv-empty-row">
                       <i class="bi bi-inbox" style="font-size:1.4rem;"></i>
                       <p>No products found. Add your first product.</p>
                     </td>
@@ -269,43 +180,6 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════
-         MODAL: Adjust Stock
-    ════════════════════════════════════════════════════ --}}
-    <div class="inv-modal-overlay" id="adjustModal">
-      <div class="inv-modal inv-modal-sm">
-        <div class="inv-modal-head">
-          <h3><i class="bi bi-plus-slash-minus"></i> Adjust Stock</h3>
-          <button class="inv-modal-close" onclick="closeModal('adjustModal')">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-
-        <form method="POST" id="adjustForm" novalidate>
-          @csrf
-          <div class="inv-modal-body">
-            <p class="inv-adjust-name" id="adjustProductName"></p>
-            <p class="inv-adjust-current">Current quantity: <strong id="adjustCurrentQty"></strong></p>
-
-            <label class="inv-field-label" for="adjustment">
-              Adjustment (+ to add, – to remove)
-            </label>
-            <input type="number" name="adjustment" id="adjustment"
-                   class="inv-field-input" placeholder="e.g. 50 or -10" required />
-
-            <p class="inv-adjust-hint">
-              <i class="bi bi-info-circle"></i>
-              Enter a positive number to add stock or a negative number to remove stock.
-            </p>
-          </div>
-          <div class="inv-modal-footer">
-            <button type="button" class="ghost-btn" onclick="closeModal('adjustModal')">Cancel</button>
-            <button type="submit" class="primary-btn">Apply Adjustment</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    {{-- ═══════════════════════════════════════════════════
          MODAL: Delete Confirm
     ════════════════════════════════════════════════════ --}}
     <div class="inv-modal-overlay" id="deleteModal">
@@ -357,29 +231,13 @@
       document.getElementById('openAddModal').addEventListener('click', () => openModal('addModal'));
 
       /* ── Edit modal ── */
-      function openEdit(product) {
+      function openEdit(id, name, unit, price) {
         const form = document.getElementById('editForm');
-        form.action = '/admin/inventory/' + product.id;
-
-        const fields = ['name','sku','category','flavor','size_label','unit',
-                        'cost_price','selling_price','quantity','reorder_level',
-                        'supplier_name','notes'];
-        fields.forEach(field => {
-          const el = form.querySelector('[name="' + field + '"]');
-          if (!el) return;
-          el.value = product[field] ?? '';
-        });
-
+        form.action = '/admin/inventory/' + id;
+        form.querySelector('[name="name"]').value = name;
+        form.querySelector('[name="unit"]').value = unit;
+        form.querySelector('[name="selling_price"]').value = price;
         openModal('editModal');
-      }
-
-      /* ── Adjust modal ── */
-      function openAdjust(id, name, currentQty) {
-        document.getElementById('adjustProductName').textContent = name;
-        document.getElementById('adjustCurrentQty').textContent = currentQty;
-        document.getElementById('adjustForm').action = '/admin/inventory/' + id + '/adjust';
-        document.getElementById('adjustment').value = '';
-        openModal('adjustModal');
       }
 
       /* ── Delete modal ── */

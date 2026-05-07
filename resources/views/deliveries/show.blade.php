@@ -170,13 +170,12 @@
             $fullyPaid = $alloc->isFullyPaid();
           @endphp
           <div class="alloc-card">
+            @if ($user->role !== 'customer')
             <div class="alloc-header">
               <div>
-                @if ($user->role !== 'customer')
                 <div class="alloc-name">{{ $alloc->customer->name ?? '-' }}</div>
                 @if ($alloc->customer->shop_name)
                   <div style="font-size:0.82rem; color:var(--text-soft);">{{ $alloc->customer->shop_name }}</div>
-                @endif
                 @endif
                 @if ($alloc->allocation_date)
                   <div style="font-size:0.82rem; color:var(--text-soft); margin-top:4px;">
@@ -192,13 +191,15 @@
                   @else Balance: &#8358;{{ number_format($remaining, 2) }}
                   @endif
                 </div>
-                @if (!$fullyPaid && $delivery->status === 'dispatched')
-                  <a href="{{ route('deliveries.allocation.pay', $alloc) }}" class="primary-btn" style="font-size:0.8rem; padding:5px 12px; display:inline-block; margin-top:8px;">
-                    <i class="bi bi-cash-coin"></i> Submit Payment
-                  </a>
-                @endif
               </div>
             </div>
+            @else
+            @if ($alloc->allocation_date)
+              <div style="font-size:0.82rem; color:var(--text-soft); margin-bottom:10px;">
+                <i class="bi bi-calendar3"></i> {{ $alloc->allocation_date->format('d M Y') }}
+              </div>
+            @endif
+            @endif
 
             {{-- Items --}}
             <table class="mini-table">
@@ -216,6 +217,14 @@
                 @endforeach
               </tbody>
             </table>
+
+            @if (!$fullyPaid && $delivery->status === 'dispatched')
+              <div style="margin-top:10px;">
+                <a href="{{ route('deliveries.allocation.pay', $alloc) }}" class="primary-btn" style="font-size:0.8rem; padding:5px 12px; display:inline-block;">
+                  <i class="bi bi-cash-coin"></i> Submit Payment
+                </a>
+              </div>
+            @endif
 
             {{-- Payment history --}}
             @if ($alloc->payments->count())

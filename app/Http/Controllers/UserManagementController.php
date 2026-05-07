@@ -107,7 +107,7 @@ class UserManagementController extends Controller
 
     private function canCreateStaff(string $role): bool
     {
-        return in_array($role, ['admin', 'super_admin'], true);
+        return $role === 'super_admin';
     }
 
     public function editUser(Request $request, User $user)
@@ -260,7 +260,7 @@ class UserManagementController extends Controller
 
     public function createSuperAdmin(Request $request)
     {
-        if (!$request->user()->isAdmin()) abort(403);
+        if ($request->user()->role !== 'super_admin') abort(403);
 
         return view('users.create-super-admin', [
             'user'   => $request->user(),
@@ -271,7 +271,7 @@ class UserManagementController extends Controller
 
     public function storeSuperAdmin(Request $request)
     {
-        if (!$request->user()->isAdmin()) abort(403);
+        if ($request->user()->role !== 'super_admin') abort(403);
 
         $state = $this->validatedState($request);
 

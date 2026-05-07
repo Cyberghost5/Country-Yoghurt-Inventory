@@ -72,7 +72,7 @@
                 <i class="bi bi-wallet2"></i> Wallet Balance
               </span>
             @else
-              <span class="sms-stat-value" style="font-size: 1rem; color: var(--text-muted);">—</span>
+              <span class="sms-stat-value" style="font-size: 1rem; color: var(--text-muted);">-</span>
               <span class="sms-stat-label">
                 <i class="bi bi-wallet2"></i> Wallet Balance
               </span>
@@ -111,7 +111,7 @@
                     <tr>
                       <td class="table-muted">{{ $log->id }}</td>
                       <td>{{ $log->created_at->format('d M Y, g:ia') }}</td>
-                      <td>{{ $log->sender?->name ?? '—' }}</td>
+                      <td>{{ $log->sender?->name ?? '-' }}</td>
                       <td>
                         <span class="sms-type-badge sms-type-{{ $log->recipient_type }}">
                           {{ $log->recipientTypeLabel() }}

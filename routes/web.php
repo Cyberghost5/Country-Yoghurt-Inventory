@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\AdminPagesController;
+use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\InventoryController;
@@ -56,6 +57,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/{order}/approve', [OrderController::class, 'approve'])->name('orders.approve');
     Route::post('/orders/{order}/reject', [OrderController::class, 'reject'])->name('orders.reject');
     Route::post('/orders/{order}/deliver', [OrderController::class, 'deliver'])->name('orders.deliver');
+    Route::delete('/orders', [OrderController::class, 'destroyAll'])->name('orders.destroyAll');
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
     /* ── Transactions ── */
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
@@ -76,6 +79,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
     Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatch'])->name('deliveries.dispatch');
     Route::post('/deliveries/{delivery}/complete', [DeliveryController::class, 'markCompleted'])->name('deliveries.complete');
+
+    /* ── Bank Accounts ── */
+    Route::get('/admin/bank-accounts', [BankAccountController::class, 'index'])->name('admin.bank_accounts.index');
+    Route::post('/admin/bank-accounts', [BankAccountController::class, 'store'])->name('admin.bank_accounts.store');
+    Route::delete('/admin/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('admin.bank_accounts.destroy');
+    Route::get('/bank-accounts', [BankAccountController::class, 'customerView'])->name('bank_accounts.show');
 
     /* ── Payments ── */
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');

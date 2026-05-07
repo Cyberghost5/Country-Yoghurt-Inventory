@@ -1,4 +1,4 @@
-# Country Yoghurt — Platform Documentation
+# Country Yoghurt - Platform Documentation
 
 > **Version:** 1.1 (as of May 2026)
 > **Framework:** Laravel 13 (PHP), Blade templates, vanilla CSS
@@ -33,7 +33,7 @@
 
 ## 1. Overview
 
-Country Yoghurt is a web-based inventory and operations management system built for a yoghurt distribution business. It tracks products, manages customer orders, records payments, schedules and approves deliveries, and provides real-time reporting — all behind a role-based access system. The platform serves three types of users: **Admins** who oversee the entire business, **Staff** who manage operations within their assigned state, and **Customers** who place orders and submit payments.
+Country Yoghurt is a web-based inventory and operations management system built for a yoghurt distribution business. It tracks products, manages customer orders, records payments, schedules and approves deliveries, and provides real-time reporting - all behind a role-based access system. The platform serves three types of users: **Admins** who oversee the entire business, **Staff** who manage operations within their assigned state, and **Customers** who place orders and submit payments.
 
 ---
 
@@ -66,12 +66,12 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | id | bigint | PK |
 | name | string | Full name |
 | email | string | Unique |
-| phone | string | Nigerian format — primary login identifier |
+| phone | string | Nigerian format - primary login identifier |
 | role | string | `admin`, `staff`, `customer` |
 | state | string | Nigerian state |
 | lga | string | Local Government Area |
 | shop_name | string | Customers only |
-| address | string | Customers only — used for delivery address auto-fill |
+| address | string | Customers only - used for delivery address auto-fill |
 | password | string | Bcrypt hashed |
 | remember_token | string | |
 | email_verified_at | timestamp | |
@@ -129,7 +129,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | amount | decimal(12,2) | |
 | payment_method | string | `bank_transfer`, `cash`, `pos`, `mobile_money` |
 | reference | string | Nullable (bank/transaction ref) |
-| proof_path | string | Nullable — stored in `public` disk |
+| proof_path | string | Nullable - stored in `public` disk |
 | notes | text | Nullable |
 | reason | text | Required if no order linked |
 | status | string | `pending`, `approved`, `rejected` |
@@ -144,7 +144,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | order_id | bigint | FK → orders |
 | staff_id | bigint | FK → users (staff who scheduled) |
 | delivery_address | text | Pre-filled from customer address |
-| scheduled_at | date | Required — must be today or future |
+| scheduled_at | date | Required - must be today or future |
 | notes | text | Nullable |
 | status | string | `pending`, `approved`, `delivered`, `rejected` |
 | rejection_reason | text | Nullable |
@@ -155,13 +155,13 @@ Country Yoghurt is a web-based inventory and operations management system built 
 ### `password_reset_otps`
 | Column | Type | Notes |
 |---|---|---|
-| phone | string | PK — the user's phone number |
+| phone | string | PK - the user's phone number |
 | otp | string | Bcrypt-hashed 6-digit code |
 | expires_at | dateTime | 10 minutes from creation |
 | created_at | timestamp | |
 
 ### `notifications`
-Standard Laravel database notifications table — stores JSON payload per user with `read_at` timestamp.
+Standard Laravel database notifications table - stores JSON payload per user with `read_at` timestamp.
 
 ---
 
@@ -207,14 +207,14 @@ Standard Laravel database notifications table — stores JSON payload per user w
 - Already-authenticated users visiting `/` are redirected to `/dashboard`.
 
 ### Password Reset (SMS OTP)
-The password reset flow is entirely SMS-based — no email link is sent.
+The password reset flow is entirely SMS-based - no email link is sent.
 
-1. **Forgot Password:** `GET /forgot-password` — enter registered phone number.
-2. **Send OTP:** `POST /forgot-password` — generates a random 6-digit OTP, stores it (bcrypt-hashed) in `password_reset_otps`, and sends it to the phone number via BulkSMS. OTP expires in **10 minutes**.
-3. **Enter OTP:** `GET /verify-otp` — user enters the 6-digit code received by SMS.
-4. **Verify OTP:** `POST /verify-otp` — verifies the code against the hashed record. On success, issues a short-lived session reset token (15 min) and deletes the OTP record, then redirects to the new-password form.
-5. **New Password:** `GET /reset-password/{token}` — enter and confirm new password (min 8 characters). Token is validated against the session (not URL-exposed secrets).
-6. **Reset:** `POST /reset-password` — validates session token, updates password, logs the user in, and redirects to `/dashboard`.
+1. **Forgot Password:** `GET /forgot-password` - enter registered phone number.
+2. **Send OTP:** `POST /forgot-password` - generates a random 6-digit OTP, stores it (bcrypt-hashed) in `password_reset_otps`, and sends it to the phone number via BulkSMS. OTP expires in **10 minutes**.
+3. **Enter OTP:** `GET /verify-otp` - user enters the 6-digit code received by SMS.
+4. **Verify OTP:** `POST /verify-otp` - verifies the code against the hashed record. On success, issues a short-lived session reset token (15 min) and deletes the OTP record, then redirects to the new-password form.
+5. **New Password:** `GET /reset-password/{token}` - enter and confirm new password (min 8 characters). Token is validated against the session (not URL-exposed secrets).
+6. **Reset:** `POST /reset-password` - validates session token, updates password, logs the user in, and redirects to `/dashboard`.
 
 **Security properties:**
 - OTP is bcrypt-hashed in the database; the raw code only exists in the SMS.
@@ -235,10 +235,10 @@ The password reset flow is entirely SMS-based — no email link is sent.
 The dashboard is fully role-aware and shows different KPIs and widgets per user.
 
 ### Admin Dashboard
-- **Date filter bar** with 12 preset options (see [Date Range Options](#date-range-options)) — all transactional KPIs are date-filtered.
+- **Date filter bar** with 12 preset options (see [Date Range Options](#date-range-options)) - all transactional KPIs are date-filtered.
 - **KPI cards:** Total Orders, Pending Orders, Total Payments, Pending Payments, Total Revenue, Outstanding Debt, Total Deliveries, Pending Deliveries, Completed Deliveries.
 - **Headcount cards:** Staff Count, Customer Count, Active States, Products in Inventory, Low Stock, Out of Stock.
-- **SMS Wallet Balance card:** Live balance from the BulkSMS API — links to the SMS Broadcast page.
+- **SMS Wallet Balance card:** Live balance from the BulkSMS API - links to the SMS Broadcast page.
 - **Recent Staff table:** Last 5 registered staff members. Each row is **clickable** and navigates to that staff member's edit/detail page.
 - **Recent Customers table:** Last 5 registered customers. Each row is **clickable** and navigates to that customer's profile page.
 
@@ -283,10 +283,10 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 ### Features
 - **Product listing** with live search (name, SKU, supplier) and filters by category and stock status.
 - **KPI bar:** Total products, total units in stock, low-stock count, out-of-stock count, total inventory value (cost).
-- **Stock status badges:** In Stock (green), Low Stock (orange), Out of Stock (red) — automatically computed against `reorder_level`.
+- **Stock status badges:** In Stock (green), Low Stock (orange), Out of Stock (red) - automatically computed against `reorder_level`.
 - **Add Product modal:** Name, SKU (auto-generated if blank), category, flavor, size label, unit, cost price, selling price, quantity, reorder level, supplier, notes.
 - **Edit Product modal:** Same fields as Add; SKU uniqueness validated excluding self.
-- **Stock Adjustment modal:** Add or remove units with an optional reason note — does not delete the product.
+- **Stock Adjustment modal:** Add or remove units with an optional reason note - does not delete the product.
 - **Delete Product:** Admin only; removes the product record.
 - **SKU auto-generation:** Pattern based on category prefix + product name slug.
 
@@ -343,7 +343,7 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 
 ### Submitting a Payment
 - **Who can submit:** Customer (own orders), Staff or Admin (on behalf of a customer).
-- **Link to order:** Optional — a payment can be linked to a specific order or submitted standalone with a reason text.
+- **Link to order:** Optional - a payment can be linked to a specific order or submitted standalone with a reason text.
 - **Pre-fill from Order page:** "Submit Payment" button on an approved order opens the create form with the order pre-selected and amount pre-filled with the remaining balance.
 - **Fields:** Order (optional), amount, payment method, bank/transaction reference (optional), proof of payment (JPG/PNG/PDF, max 4MB), notes.
 - **Payment methods:** Bank Transfer, Cash, POS, Mobile Money.
@@ -383,7 +383,7 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 
 ### Scheduling a Delivery
 - **Who can schedule:** Staff and Admin.
-- **Pre-fill from Order page:** "Schedule Delivery" button on an approved order opens the create form with that order locked (shown as a summary card — order number, customer, state, total). The customer and order selectors are hidden and replaced with hidden inputs.
+- **Pre-fill from Order page:** "Schedule Delivery" button on an approved order opens the create form with that order locked (shown as a summary card - order number, customer, state, total). The customer and order selectors are hidden and replaced with hidden inputs.
 - **Delivery address auto-fill:** When a customer is selected, the delivery address field is automatically populated from the customer's saved address (address + LGA + state, comma-separated). The field remains editable.
 - **Fields:** Customer selector → Order selector (AJAX-filtered to the selected customer's approved orders), delivery address, scheduled date (required; must be today or future), notes.
 - **Validation:** Order must be in `approved` status; no active (pending/approved) delivery already exists for the order.
@@ -418,7 +418,7 @@ If a delivery is rejected, the "Schedule Delivery" button reappears on both the 
 ### Delivery Scoping
 - Admin sees all deliveries.
 - Staff sees deliveries for orders belonging to customers in their state.
-- Customer cannot access the deliveries list directly — delivery status is visible on their order detail page.
+- Customer cannot access the deliveries list directly - delivery status is visible on their order detail page.
 - Paginated (20 per page), filterable by status tabs (All, Pending, Approved, Delivered, Rejected).
 
 ---
@@ -430,7 +430,7 @@ If a delivery is rejected, the "Schedule Delivery" button reappears on both the 
 
 The Reports page provides a comprehensive, date-filtered overview of business performance. The same 12 date-range presets used on the Dashboard apply here (default: This Month).
 
-### Section 1 — Summary KPIs (6 stat cards)
+### Section 1 - Summary KPIs (6 stat cards)
 - Total Orders in period
 - Orders Value (sum of `total_amount`)
 - Average Order Value
@@ -438,23 +438,23 @@ The Reports page provides a comprehensive, date-filtered overview of business pe
 - Outstanding Debt (unpaid balance on approved/delivered orders)
 - Pending Payments (awaiting review)
 
-### Section 2 — Orders Breakdown
+### Section 2 - Orders Breakdown
 - **Orders by Status bar chart:** Visual bars for Pending, Approved, Delivered, Rejected with count and percentage of total.
 - **Orders by State table:** Count and total value per Nigerian state, sorted by order count.
 
-### Section 3 — Revenue & Payments
+### Section 3 - Revenue & Payments
 - **Revenue by Payment Method table:** Method name, number of payments, total collected, percentage share.
-- **Top 20 Outstanding Debt Orders table:** Customer name, state, order number, order value, amount paid, remaining balance — sorted by largest outstanding balance.
+- **Top 20 Outstanding Debt Orders table:** Customer name, state, order number, order value, amount paid, remaining balance - sorted by largest outstanding balance.
 
-### Section 4 — Deliveries
+### Section 4 - Deliveries
 - **Deliveries by Status bar chart:** Pending, Approved/Out for Delivery, Delivered, Rejected.
 - **Staff Performance table:** Each staff member's name, state, number of deliveries scheduled, and delivered count.
 
-### Section 5 — Top Performers
+### Section 5 - Top Performers
 - **Top 10 Products by Revenue:** Product name, number of orders containing it, total units sold, total revenue generated.
 - **Top 10 Customers by Order Value:** Customer name, shop name, state, order count, total order value, total paid.
 
-### Section 6 — Recent Orders
+### Section 6 - Recent Orders
 Last 20 orders placed within the selected period, with order number, customer name, state, status badge, total amount, and a view link.
 
 ---
@@ -565,7 +565,7 @@ A `config/nigeria.php` file contains a comprehensive map of all Nigerian states 
 **Service:** `App\Services\BulkSmsService`
 **Provider:** BulkSMSNigeria API v2
 
-- Configured via `config/services.php` — requires `BULKSMS_API_TOKEN` and optionally `BULKSMS_SENDER_ID` in `.env`.
+- Configured via `config/services.php` - requires `BULKSMS_API_TOKEN` and optionally `BULKSMS_SENDER_ID` in `.env`.
 - Normalises Nigerian phone numbers to the `234XXXXXXXXXX` format automatically (handles `0XX`, `234XX`, or bare 10-digit formats).
 - Gracefully degrades: if the API token is not configured, a warning is logged and the rest of the operation continues normally.
 - All errors are logged to `storage/logs/laravel.log` without throwing exceptions to the user.
@@ -784,7 +784,7 @@ All three main record detail pages support browser printing.
 
 ## 1. Overview
 
-Country Yoghurt is a web-based inventory and operations management system built for a yoghurt distribution business. It tracks products, manages customer orders, records payments, schedules and approves deliveries, and provides real-time reporting — all behind a role-based access system. The platform serves three types of users: **Admins** who oversee the entire business, **Staff** who manage operations within their assigned state, and **Customers** who place orders and submit payments.
+Country Yoghurt is a web-based inventory and operations management system built for a yoghurt distribution business. It tracks products, manages customer orders, records payments, schedules and approves deliveries, and provides real-time reporting - all behind a role-based access system. The platform serves three types of users: **Admins** who oversee the entire business, **Staff** who manage operations within their assigned state, and **Customers** who place orders and submit payments.
 
 ---
 
@@ -822,7 +822,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | state | string | Nigerian state |
 | lga | string | Local Government Area |
 | shop_name | string | Customers only |
-| address | string | Customers only — used for delivery address auto-fill |
+| address | string | Customers only - used for delivery address auto-fill |
 | password | string | Bcrypt hashed |
 | remember_token | string | |
 | email_verified_at | timestamp | |
@@ -880,7 +880,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | amount | decimal(12,2) | |
 | payment_method | string | `bank_transfer`, `cash`, `pos`, `mobile_money` |
 | reference | string | Nullable (bank/transaction ref) |
-| proof_path | string | Nullable — stored in `public` disk |
+| proof_path | string | Nullable - stored in `public` disk |
 | notes | text | Nullable |
 | reason | text | Required if no order linked |
 | status | string | `pending`, `approved`, `rejected` |
@@ -895,7 +895,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | order_id | bigint | FK → orders |
 | staff_id | bigint | FK → users (staff who scheduled) |
 | delivery_address | text | Pre-filled from customer address |
-| scheduled_at | date | Required — must be today or future |
+| scheduled_at | date | Required - must be today or future |
 | notes | text | Nullable |
 | status | string | `pending`, `approved`, `delivered`, `rejected` |
 | rejection_reason | text | Nullable |
@@ -904,7 +904,7 @@ Country Yoghurt is a web-based inventory and operations management system built 
 | delivered_at | timestamp | |
 
 ### `notifications`
-Standard Laravel database notifications table — stores JSON payload per user with `read_at` timestamp.
+Standard Laravel database notifications table - stores JSON payload per user with `read_at` timestamp.
 
 ---
 
@@ -947,10 +947,10 @@ Standard Laravel database notifications table — stores JSON payload per user w
 - Already-authenticated users visiting `/` are redirected to `/dashboard`.
 
 ### Password Reset
-- **Forgot Password:** `GET /forgot-password` — enter registered email.
+- **Forgot Password:** `GET /forgot-password` - enter registered email.
 - **Reset Link:** Sent via Laravel mail using `Password::sendResetLink()`.
-- **Reset Form:** `GET /reset-password/{token}` — enter new password (confirmed).
-- **Update:** `POST /reset-password` — validates token and updates password.
+- **Reset Form:** `GET /reset-password/{token}` - enter new password (confirmed).
+- **Update:** `POST /reset-password` - validates token and updates password.
 
 ### Logout
 - **Route:** `POST /logout`
@@ -965,7 +965,7 @@ Standard Laravel database notifications table — stores JSON payload per user w
 The dashboard is fully role-aware and shows different KPIs and widgets per user.
 
 ### Admin Dashboard
-- **Date filter bar** with 12 preset options (see [Date Range Options](#date-range-options)) — all transactional KPIs are date-filtered.
+- **Date filter bar** with 12 preset options (see [Date Range Options](#date-range-options)) - all transactional KPIs are date-filtered.
 - **KPI cards:** Total Orders, Pending Orders, Total Payments, Pending Payments, Total Revenue, Outstanding Debt, Total Deliveries, Pending Deliveries, Completed Deliveries.
 - **Headcount cards:** Staff Count, Customer Count, Active States, Products in Inventory, Low Stock, Out of Stock.
 - **Recent Staff table:** Last 5 registered staff members.
@@ -1012,10 +1012,10 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 ### Features
 - **Product listing** with live search (name, SKU, supplier) and filters by category and stock status.
 - **KPI bar:** Total products, total units in stock, low-stock count, out-of-stock count, total inventory value (cost).
-- **Stock status badges:** In Stock (green), Low Stock (orange), Out of Stock (red) — automatically computed against `reorder_level`.
+- **Stock status badges:** In Stock (green), Low Stock (orange), Out of Stock (red) - automatically computed against `reorder_level`.
 - **Add Product modal:** Name, SKU (auto-generated if blank), category, flavor, size label, unit, cost price, selling price, quantity, reorder level, supplier, notes.
 - **Edit Product modal:** Same fields as Add; SKU uniqueness validated excluding self.
-- **Stock Adjustment modal:** Add or remove units with an optional reason note — does not delete the product.
+- **Stock Adjustment modal:** Add or remove units with an optional reason note - does not delete the product.
 - **Delete Product:** Admin only; removes the product record.
 - **SKU auto-generation:** Pattern based on category prefix + product name slug.
 
@@ -1072,7 +1072,7 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 
 ### Submitting a Payment
 - **Who can submit:** Customer (own orders), Staff or Admin (on behalf of a customer).
-- **Link to order:** Optional — a payment can be linked to a specific order or submitted standalone with a reason text.
+- **Link to order:** Optional - a payment can be linked to a specific order or submitted standalone with a reason text.
 - **Pre-fill from Order page:** "Submit Payment" button on an approved order opens the create form with the order pre-selected and amount pre-filled with the remaining balance.
 - **Fields:** Order (optional), amount, payment method, bank/transaction reference (optional), proof of payment (JPG/PNG/PDF, max 4MB), notes.
 - **Payment methods:** Bank Transfer, Cash, POS, Mobile Money.
@@ -1112,7 +1112,7 @@ The following 12 options are available on the Admin Dashboard and Reports page:
 
 ### Scheduling a Delivery
 - **Who can schedule:** Staff and Admin.
-- **Pre-fill from Order page:** "Schedule Delivery" button on an approved order opens the create form with that order locked (shown as a summary card — order number, customer, state, total). The customer and order selectors are hidden and replaced with hidden inputs.
+- **Pre-fill from Order page:** "Schedule Delivery" button on an approved order opens the create form with that order locked (shown as a summary card - order number, customer, state, total). The customer and order selectors are hidden and replaced with hidden inputs.
 - **Delivery address auto-fill:** When a customer is selected, the delivery address field is automatically populated from the customer's saved address (address + LGA + state, comma-separated). The field remains editable.
 - **Fields:** Customer selector → Order selector (AJAX-filtered to the selected customer's approved orders), delivery address, scheduled date (required; must be today or future), notes.
 - **Validation:** Order must be in `approved` status; no active (pending/approved) delivery already exists for the order.
@@ -1147,7 +1147,7 @@ If a delivery is rejected, the "Schedule Delivery" button reappears on both the 
 ### Delivery Scoping
 - Admin sees all deliveries.
 - Staff sees deliveries for orders belonging to customers in their state.
-- Customer cannot access the deliveries list directly — delivery status is visible on their order detail page.
+- Customer cannot access the deliveries list directly - delivery status is visible on their order detail page.
 - Paginated (20 per page), filterable by status tabs (All, Pending, Approved, Delivered, Rejected).
 
 ---
@@ -1159,7 +1159,7 @@ If a delivery is rejected, the "Schedule Delivery" button reappears on both the 
 
 The Reports page provides a comprehensive, date-filtered overview of business performance. The same 12 date-range presets used on the Dashboard apply here (default: This Month).
 
-### Section 1 — Summary KPIs (6 stat cards)
+### Section 1 - Summary KPIs (6 stat cards)
 - Total Orders in period
 - Orders Value (sum of `total_amount`)
 - Average Order Value
@@ -1167,23 +1167,23 @@ The Reports page provides a comprehensive, date-filtered overview of business pe
 - Outstanding Debt (unpaid balance on approved/delivered orders)
 - Pending Payments (awaiting review)
 
-### Section 2 — Orders Breakdown
+### Section 2 - Orders Breakdown
 - **Orders by Status bar chart:** Visual bars for Pending, Approved, Delivered, Rejected with count and percentage of total.
 - **Orders by State table:** Count and total value per Nigerian state, sorted by order count.
 
-### Section 3 — Revenue & Payments
+### Section 3 - Revenue & Payments
 - **Revenue by Payment Method table:** Method name, number of payments, total collected, percentage share.
-- **Top 20 Outstanding Debt Orders table:** Customer name, state, order number, order value, amount paid, remaining balance — sorted by largest outstanding balance.
+- **Top 20 Outstanding Debt Orders table:** Customer name, state, order number, order value, amount paid, remaining balance - sorted by largest outstanding balance.
 
-### Section 4 — Deliveries
+### Section 4 - Deliveries
 - **Deliveries by Status bar chart:** Pending, Approved/Out for Delivery, Delivered, Rejected.
 - **Staff Performance table:** Each staff member's name, state, number of deliveries scheduled, and delivered count.
 
-### Section 5 — Top Performers
+### Section 5 - Top Performers
 - **Top 10 Products by Revenue:** Product name, number of orders containing it, total units sold, total revenue generated.
 - **Top 10 Customers by Order Value:** Customer name, shop name, state, order count, total order value, total paid.
 
-### Section 6 — Recent Orders
+### Section 6 - Recent Orders
 Last 20 orders placed within the selected period, with order number, customer name, state, status badge, total amount, and a view link.
 
 ---
@@ -1293,7 +1293,7 @@ A `config/nigeria.php` file contains a comprehensive map of all Nigerian states 
 **Service:** `App\Services\BulkSmsService`
 **Provider:** BulkSMSNigeria API v2
 
-- Configured via `config/services.php` — requires `BULKSMS_TOKEN` and optionally `BULKSMS_SENDER` in `.env`.
+- Configured via `config/services.php` - requires `BULKSMS_TOKEN` and optionally `BULKSMS_SENDER` in `.env`.
 - Normalises Nigerian phone numbers to the `234XXXXXXXXXX` format automatically (handles `0XX`, `234XX`, or bare 10-digit formats).
 - SMS notifications are sent alongside database/email notifications for key order events.
 - Gracefully degrades: if the API token is not configured, a warning is logged and the rest of the operation continues normally.

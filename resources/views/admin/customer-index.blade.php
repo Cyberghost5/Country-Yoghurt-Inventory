@@ -22,8 +22,38 @@
       <main class="main-content">
         <header class="topbar"><div class="title-block"><h2>Customer Directory</h2><p>All customer records with shop and location details.</p></div></header>
 
+        {{-- Filters --}}
+        <form method="GET" action="{{ route('admin.customers.index') }}" class="card" style="padding:16px 20px; margin-bottom:16px;">
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+            <div style="flex:1; min-width:180px;">
+              <label style="font-size:0.78rem; color:var(--text-soft); display:block; margin-bottom:4px;">Search</label>
+              <input type="text" name="search" value="{{ $search ?? '' }}"
+                     placeholder="Name, shop, phone…"
+                     style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-size:0.88rem;" />
+            </div>
+            <div style="min-width:160px;">
+              <label style="font-size:0.78rem; color:var(--text-soft); display:block; margin-bottom:4px;">State</label>
+              <select name="state" style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-size:0.88rem;">
+                <option value="">All States</option>
+                @foreach ($states as $s)
+                  <option value="{{ $s }}" {{ ($state ?? '') === $s ? 'selected' : '' }}>{{ $s }}</option>
+                @endforeach
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; padding-bottom:2px;">
+              <input type="checkbox" name="debt" id="debtFilter" value="1" {{ !empty($debtOnly) ? 'checked' : '' }}
+                     style="width:16px; height:16px; cursor:pointer;" />
+              <label for="debtFilter" style="font-size:0.88rem; cursor:pointer; white-space:nowrap;">Has Debt</label>
+            </div>
+            <button type="submit" class="primary-btn" style="padding:8px 18px;">Filter</button>
+            @if (!empty($search) || !empty($state) || !empty($debtOnly))
+              <a href="{{ route('admin.customers.index') }}" class="ghost-btn" style="padding:8px 14px;">Clear</a>
+            @endif
+          </div>
+        </form>
+
         <section class="card table-card">
-          <div class="card-head"><div><h3>Customer List</h3><span>{{ $customers->count() }} customer accounts</span></div></div>
+          <div class="card-head"><div><h3>Customer List</h3><span>{{ $customers->count() }} customer account{{ $customers->count() === 1 ? '' : 's' }}</span></div></div>
           <div class="table-scroll">
             <table>
               <thead>

@@ -52,7 +52,7 @@
           <div class="ord-meta-grid" style="margin-bottom: 0;">
             <div class="ord-meta-item">
               <span class="ord-meta-label">Sent By</span>
-              <span class="ord-meta-value">{{ $smsLog->sender?->name ?? '—' }}</span>
+              <span class="ord-meta-value">{{ $smsLog->sender?->name ?? '-' }}</span>
             </div>
             <div class="ord-meta-item">
               <span class="ord-meta-label">Date &amp; Time</span>

@@ -60,11 +60,11 @@ $_pendingDeliveries = match($_u->role) {
     <i class="bi bi-grid-1x2 nav-icon"></i>Dashboard
   </a>
 
-  @if ($user->isAdminOrStaff())
-    <!-- <a href="{{ route('admin.inventory.index') }}"
+  @if ($user->isAdmin())
+    <a href="{{ route('admin.inventory.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
-      <i class="bi bi-box-seam nav-icon"></i>Inventory
-    </a> -->
+      <i class="bi bi-box-seam nav-icon"></i>Products
+    </a>
   @endif
 
   <a href="{{ route('orders.index') }}"
@@ -93,6 +93,17 @@ $_pendingDeliveries = match($_u->role) {
         <span class="notif-nav-badge">{{ $_pendingDeliveries > 99 ? '99+' : $_pendingDeliveries }}</span>
       @endif
     </a>
+    <a href="{{ route('bank_accounts.show') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('bank_accounts.*') ? 'active' : '' }}">
+      <i class="bi bi-bank nav-icon"></i>Payment Accounts
+    </a>
+  @endif
+
+  @if ($user->role === 'staff')
+    <a href="{{ route('bank_accounts.show') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('bank_accounts.*') ? 'active' : '' }}">
+      <i class="bi bi-bank nav-icon"></i>Payment Accounts
+    </a>
   @endif
 
   <a href="{{ route('payments.index') }}"
@@ -113,15 +124,17 @@ $_pendingDeliveries = match($_u->role) {
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
       <i class="bi bi-bar-chart-line nav-icon"></i>Reports
     </a>
-    @if ($user->role === 'super_admin')
     <a href="{{ route('admin.debts.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
       <i class="bi bi-exclamation-circle nav-icon"></i>Debts
     </a>
-    @endif
     <a href="{{ route('admin.sms.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.sms.*') ? 'active' : '' }}">
       <i class="bi bi-chat-dots nav-icon"></i>SMS Broadcast
+    </a>
+    <a href="{{ route('admin.bank_accounts.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('admin.bank_accounts.*') ? 'active' : '' }}">
+      <i class="bi bi-bank nav-icon"></i>Bank Accounts
     </a>
   @endif
 
@@ -156,6 +169,7 @@ $_pendingDeliveries = match($_u->role) {
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.admins.index') ? 'active' : '' }}">
             <i class="bi bi-shield nav-icon"></i>View Admins
           </a>
+          @if ($user->role === 'super_admin')
           <a href="{{ route('users.create.admin') }}"
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.admin') ? 'active' : '' }}">
             <i class="bi bi-shield-plus nav-icon"></i>Add Admin
@@ -164,6 +178,7 @@ $_pendingDeliveries = match($_u->role) {
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.super_admin') ? 'active' : '' }}">
             <i class="bi bi-shield-lock nav-icon"></i>Add Super Admin
           </a>
+          @endif
         </div>
       </div>
 
@@ -182,10 +197,12 @@ $_pendingDeliveries = match($_u->role) {
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.staff.index') ? 'active' : '' }}">
             <i class="bi bi-people nav-icon"></i>View Staff
           </a>
+          @if ($user->role === 'super_admin')
           <a href="{{ route('users.create.staff') }}"
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.staff') ? 'active' : '' }}">
             <i class="bi bi-person-plus nav-icon"></i>Add Staff
           </a>
+          @endif
         </div>
       </div>
     @endif

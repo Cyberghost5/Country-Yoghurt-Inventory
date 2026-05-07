@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Delivery;
 use App\Models\DeliveryAllocation;
 use App\Models\Order;
@@ -43,11 +44,12 @@ class DashboardController extends Controller
         $recentCustomers  = collect();
         $smsBalance       = null;
 
-        // ── Contacts in state (staff & customer) ──────────────────
+        // ── Contacts in state (staff only for customers) ──────────────────
         if (in_array($user->role, ['staff', 'customer'], true) && $user->state) {
+            $contactRoles = $user->role === 'customer' ? ['staff'] : ['staff', 'customer'];
             $stateContacts = User::query()
                 ->where('state', $user->state)
-                ->whereIn('role', ['staff', 'customer'])
+                ->whereIn('role', $contactRoles)
                 ->where('id', '!=', $user->id)
                 ->orderBy('role')
                 ->orderBy('name')
@@ -155,7 +157,9 @@ class DashboardController extends Controller
         }
 
         // ── Customer stats ─────────────────────────────────────────
+        $stateBankAccount = null;
         if ($user->role === 'customer') {
+            $stateBankAccount = BankAccount::where('state', $user->state)->first();
             $customerStats = [
                 'totalOrders'    => Order::where('user_id', $user->id)->count(),
                 'pendingOrders'  => Order::where('user_id', $user->id)->where('status', 'pending')->count(),
@@ -192,6 +196,7 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'user', 'stateContacts',
             'adminStats', 'staffStats', 'customerStats',
+            'stateBankAccount',
             'recentStaff', 'recentCustomers',
             'smsBalance',
             'range', 'fromInput', 'toInput', 'dateStart', 'dateEnd'

@@ -186,6 +186,76 @@ class ReportController extends Controller
             ->limit(20)
             ->get();
 
+        // ── Chart data ────────────────────────────────────────────────
+
+        // Helper: run a time-bucketed aggregate query and return [{label, value}]
+        $runTimeSeries = function (string $table, string $agg, string $dateFmt, ?string $statusFilter = null) use ($dateStart, $dateEnd): array {
+            $q = DB::table($table)
+                ->select(DB::raw("DATE_FORMAT(created_at, '{$dateFmt}') as period"), DB::raw("{$agg} as value"))
+                ->groupBy('period')
+                ->orderBy('period');
+            if ($statusFilter) $q->where('status', $statusFilter);
+            if ($dateStart)    $q->where('created_at', '>=', $dateStart);
+            if ($dateEnd)      $q->where('created_at', '<=', $dateEnd);
+            return $q->get()->map(function ($r) use ($dateFmt) {
+                try {
+                    if ($dateFmt === '%x-W%v') {
+                        [$yr, $wk] = explode('-W', $r->period);
+                        $label = "Wk {$wk}, {$yr}";
+                    } elseif ($dateFmt === '%Y-%m') {
+                        $label = Carbon::createFromFormat('Y-m', $r->period)->format('M Y');
+                    } else {
+                        $label = Carbon::createFromFormat('Y-m-d', $r->period)->format('d M Y');
+                    }
+                } catch (\Exception $e) {
+                    $label = $r->period;
+                }
+                return ['label' => $label, 'value' => (float) $r->value];
+            })->values()->toArray();
+        };
+
+        // Time series: monthly / weekly / daily × revenue / order_value / orders
+        $chartTimeSeries = [];
+        foreach (['monthly' => '%Y-%m', 'weekly' => '%x-W%v', 'daily' => '%Y-%m-%d'] as $grp => $dateFmt) {
+            $chartTimeSeries[$grp] = [
+                'revenue'     => $runTimeSeries('payments', 'SUM(amount)',       $dateFmt, 'approved'),
+                'order_value' => $runTimeSeries('orders',   'SUM(total_amount)', $dateFmt),
+                'orders'      => $runTimeSeries('orders',   'COUNT(*)',           $dateFmt),
+            ];
+        }
+
+        // Status doughnuts
+        $chartOrderStatus = [
+            'labels' => ['Pending', 'Approved', 'Delivered', 'Rejected'],
+            'data'   => [$ordersPending, $ordersApproved, $ordersDelivered, $ordersRejected],
+        ];
+        $chartDeliveryStatus = [
+            'labels' => ['Pending', 'Dispatched', 'Completed'],
+            'data'   => [$deliveriesPending, $deliveriesDispatched, $deliveriesDelivered],
+        ];
+
+        // Payment method: revenue + count per method
+        $methodLabels = $revenueByMethod->map(fn ($r) => match ($r->payment_method) {
+            'bank_transfer' => 'Bank Transfer',
+            'cash'          => 'Cash',
+            'pos'           => 'POS',
+            'mobile_money'  => 'Mobile Money',
+            default         => ucwords(str_replace('_', ' ', $r->payment_method)),
+        })->values()->toArray();
+        $chartPaymentMethod = [
+            'labels'  => $methodLabels,
+            'revenue' => $revenueByMethod->pluck('total')->map(fn ($v) => (float) $v)->values()->toArray(),
+            'count'   => $revenueByMethod->pluck('count')->map(fn ($v) => (int) $v)->values()->toArray(),
+        ];
+
+        // Top products: revenue, qty, order count
+        $chartProductRevenue = [
+            'labels'  => $topProducts->take(8)->pluck('product_name')->values()->toArray(),
+            'revenue' => $topProducts->take(8)->pluck('total_revenue')->map(fn ($v) => (float) $v)->values()->toArray(),
+            'qty'     => $topProducts->take(8)->pluck('total_qty')->map(fn ($v) => (int) $v)->values()->toArray(),
+            'orders'  => $topProducts->take(8)->pluck('order_count')->map(fn ($v) => (int) $v)->values()->toArray(),
+        ];
+
         return view('reports.index', compact(
             'user', 'range', 'fromInput', 'toInput', 'dateStart', 'dateEnd',
             'ordersTotal', 'ordersPending', 'ordersApproved', 'ordersDelivered',
@@ -194,7 +264,9 @@ class ReportController extends Controller
             'totalDebt', 'debtOrders',
             'deliveriesTotal', 'deliveriesPending', 'deliveriesDispatched', 'deliveriesDelivered',
             'topProducts', 'topCustomers', 'ordersByState', 'staffPerformance',
-            'recentOrders', 'recentDeliveries'
+            'recentOrders', 'recentDeliveries',
+            'chartTimeSeries', 'chartOrderStatus', 'chartDeliveryStatus',
+            'chartPaymentMethod', 'chartProductRevenue'
         ));
     }
 

@@ -35,7 +35,7 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Edit {{ $delivery->delivery_number }}</h2>
-            <p>Update the delivery details. Only pending deliveries can be edited.</p>
+            <p>Update the delivery details and customer allocations.</p>
           </div>
           <div class="top-actions">
             <a href="{{ route('deliveries.show', $delivery) }}" class="ghost-btn"><i class="bi bi-arrow-left"></i> Back</a>

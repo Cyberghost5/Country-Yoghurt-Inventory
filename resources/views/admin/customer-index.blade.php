@@ -54,7 +54,7 @@
                     </td>
                     <td class="user-actions">
                       <a href="{{ route('customers.show', $row->id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a>
-                      @if ($user->role === 'admin')
+                      @if ($user->isAdmin())
                         <a href="{{ route('users.edit', $row->id) }}" class="ua-btn ua-edit"><i class="bi bi-pencil"></i> Edit</a>
                         <form method="POST" action="{{ route('users.impersonate', $row->id) }}" style="display:inline">
                           @csrf

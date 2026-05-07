@@ -50,14 +50,16 @@
               });
             @endphp
             <a href="{{ route('deliveries.index') }}" class="ghost-btn"><i class="bi bi-arrow-left"></i> Back</a>
-            @if ($delivery->status === 'pending' && in_array($user->role, ['admin', 'staff'], true))
+            @if ($user->isAdminOrStaff())
               <a href="{{ route('deliveries.edit', $delivery) }}" class="ghost-btn"><i class="bi bi-pencil"></i> Edit</a>
+            @endif
+            @if ($delivery->status === 'pending' && $user->isAdminOrStaff())
               <form method="POST" action="{{ route('deliveries.dispatch', $delivery) }}" style="display:inline;">
                 @csrf
                 <button type="submit" class="primary-btn"><i class="bi bi-truck"></i> Dispatch</button>
               </form>
             @endif
-            @if ($delivery->status === 'dispatched' && in_array($user->role, ['admin', 'staff'], true))
+            @if ($delivery->status === 'dispatched' && $user->isAdminOrStaff())
               @if ($allFullyPaid)
                 <form method="POST" action="{{ route('deliveries.complete', $delivery) }}" style="display:inline;">
                   @csrf
@@ -80,11 +82,17 @@
         @endif
 
         {{-- Delivery meta --}}
+        @php
+          $myAlloc = $user->role === 'customer'
+              ? $delivery->allocations->firstWhere('customer_id', $user->id)
+              : null;
+        @endphp
         <div class="dlv-meta-grid">
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Date Created</div>
             <div class="dlv-meta-value">{{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : '-' }}</div>
           </div>
+          @if ($user->role !== 'customer')
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Created By</div>
             <div class="dlv-meta-value">{{ $delivery->staff->name ?? '-' }}</div>
@@ -106,6 +114,26 @@
               {{ $totalOutstanding > 0 ? '₦'.number_format($totalOutstanding, 2) : 'Fully Paid' }}
             </div>
           </div>
+          @else
+          {{-- Customer: show only their own figures --}}
+          @if ($myAlloc)
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Your Total</div>
+            <div class="dlv-meta-value">&#8358;{{ number_format($myAlloc->total_amount, 2) }}</div>
+          </div>
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Amount Paid</div>
+            <div class="dlv-meta-value" style="color:#16a34a;">&#8358;{{ number_format($myAlloc->paidAmount(), 2) }}</div>
+          </div>
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Balance</div>
+            @php $myRemaining = $myAlloc->remainingAmount(); @endphp
+            <div class="dlv-meta-value" style="color:{{ $myRemaining > 0 ? '#dc2626' : '#16a34a' }};">
+              {{ $myRemaining > 0 ? '₦'.number_format($myRemaining, 2) : 'Fully Paid' }}
+            </div>
+          </div>
+          @endif
+          @endif
           @if ($delivery->dispatched_at)
             <div class="dlv-meta-item">
               <div class="dlv-meta-label">Dispatched At</div>
@@ -127,9 +155,15 @@
         </div>
 
         {{-- Allocations --}}
-        <h3 style="font-size:1rem; margin-bottom:12px; color:var(--text-main);">Customer Allocations</h3>
+        <h3 style="font-size:1rem; margin-bottom:12px; color:var(--text-main);">{{ $user->role === 'customer' ? 'Your Delivery Details' : 'Customer Allocations' }}</h3>
 
-        @forelse ($delivery->allocations as $alloc)
+        @php
+          $visibleAllocations = $user->role === 'customer'
+              ? $delivery->allocations->where('customer_id', $user->id)
+              : $delivery->allocations;
+        @endphp
+
+        @forelse ($visibleAllocations as $alloc)
           @php
             $paid      = $alloc->paidAmount();
             $remaining = $alloc->remainingAmount();
@@ -138,9 +172,11 @@
           <div class="alloc-card">
             <div class="alloc-header">
               <div>
+                @if ($user->role !== 'customer')
                 <div class="alloc-name">{{ $alloc->customer->name ?? '-' }}</div>
                 @if ($alloc->customer->shop_name)
                   <div style="font-size:0.82rem; color:var(--text-soft);">{{ $alloc->customer->shop_name }}</div>
+                @endif
                 @endif
                 @if ($alloc->allocation_date)
                   <div style="font-size:0.82rem; color:var(--text-soft); margin-top:4px;">
@@ -198,7 +234,7 @@
             @endif
           </div>
         @empty
-          <p style="color:var(--text-soft);">No customer allocations recorded.</p>
+          <p style="color:var(--text-soft);">No allocation found.</p>
         @endforelse
 
       </main>

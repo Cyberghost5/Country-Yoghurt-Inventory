@@ -545,6 +545,52 @@
           </div>
         </div>
 
+        {{-- ── Section 7: Recent Deliveries ──────────────────────── --}}
+        {{-- ════════════════════════════════════════════════════════ --}}
+        <div class="rpt-section-title">
+          <i class="bi bi-truck"></i> Recent Deliveries (Last 20 in Period)
+        </div>
+        <div class="rpt-card" style="margin-bottom: 40px;">
+          <div class="rpt-card-body" style="padding: 0;">
+            @if ($recentDeliveries->isEmpty())
+              <p class="rpt-empty" style="padding: 18px;">No deliveries in this period.</p>
+            @else
+              <table class="rpt-table">
+                <thead>
+                  <tr>
+                    <th>Delivery No.</th>
+                    <th>Staff</th>
+                    <th>Customers</th>
+                    <th>Status</th>
+                    <th class="ta-right">Total Value (₦)</th>
+                    <th>Scheduled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach ($recentDeliveries as $dlv)
+                    <tr>
+                      <td>
+                        <a href="{{ route('deliveries.show', $dlv) }}" class="rpt-link">
+                          {{ $dlv->delivery_number }}
+                        </a>
+                      </td>
+                      <td>{{ $dlv->staff->name ?? '—' }}</td>
+                      <td>{{ $dlv->allocations_count ?? $dlv->allocations->count() }}</td>
+                      <td>
+                        <span class="ord-status-badge {{ $dlv->status_css }}">
+                          {{ $dlv->status_label }}
+                        </span>
+                      </td>
+                      <td class="ta-right">{{ number_format($dlv->totalAmount(), 2) }}</td>
+                      <td>{{ $dlv->scheduled_at ? $dlv->scheduled_at->format('d M Y') : '—' }}</td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            @endif
+          </div>
+        </div>
+
       </main>
     </div>
 

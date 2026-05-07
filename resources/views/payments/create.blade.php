@@ -92,7 +92,7 @@
 
           @else
             {{-- Customer selector (staff / admin only, no pre-selected order) --}}
-            @if (in_array($user->role, ['admin', 'staff']))
+            @if ($user->isAdminOrStaff())
             <section class="card" style="margin-bottom: 16px;">
               <h3 class="ord-section-title" style="margin-bottom: 16px;">
                 <i class="bi bi-person"></i> Customer
@@ -126,7 +126,7 @@
               </h3>
               <div class="pay-form-field">
                 <label class="inv-field-label" for="order_id">Order</label>
-                @if (in_array($user->role, ['admin', 'staff']))
+                @if ($user->isAdminOrStaff())
                   <select id="order_id" name="order_id" class="inv-select">
                     <option value="">- Select a customer first -</option>
                   </select>
@@ -262,7 +262,7 @@
     <script>
       const CY_AJAX_ORDERS_URL = '{{ route('ajax.customerOrders') }}';
       const CY_CSRF            = '{{ csrf_token() }}';
-      const CY_IS_STAFF_ADMIN  = {{ in_array($user->role, ['admin','staff']) ? 'true' : 'false' }};
+      const CY_IS_STAFF_ADMIN  = {{ $user->isAdminOrStaff() ? 'true' : 'false' }};
     </script>
     <script>
       (function() {

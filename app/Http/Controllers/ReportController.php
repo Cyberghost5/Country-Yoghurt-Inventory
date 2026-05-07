@@ -18,7 +18,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role !== 'admin') {
+        if (!$user->isAdmin()) {
             abort(403);
         }
 
@@ -100,8 +100,8 @@ class ReportController extends Controller
                 'deliveries.created_at'
             )
             ->orderByDesc('remaining');
-        if ($dateStart) $debtOrdersQ->where('orders.created_at', '>=', $dateStart);
-        if ($dateEnd)   $debtOrdersQ->where('orders.created_at', '<=', $dateEnd);
+        if ($dateStart) $debtOrdersQ->where('deliveries.created_at', '>=', $dateStart);
+        if ($dateEnd)   $debtOrdersQ->where('deliveries.created_at', '<=', $dateEnd);
         $debtOrders = $debtOrdersQ->limit(20)->get();
 
         // ── Deliveries ──────────────────────────────────────────────
@@ -180,15 +180,21 @@ class ReportController extends Controller
             ->limit(20)
             ->get();
 
+        // ── Recent Deliveries (last 20 in range) ─────────────────────
+        $recentDeliveries = $dr(Delivery::with('staff'))
+            ->latest()
+            ->limit(20)
+            ->get();
+
         return view('reports.index', compact(
             'user', 'range', 'fromInput', 'toInput', 'dateStart', 'dateEnd',
             'ordersTotal', 'ordersPending', 'ordersApproved', 'ordersDelivered',
             'ordersRejected', 'ordersValue', 'ordersAvgValue',
             'revenueTotal', 'paymentsPending', 'paymentsTotal', 'revenueByMethod',
             'totalDebt', 'debtOrders',
-            'deliveriesTotal', 'deliveriesPending', 'deliveriesApproved', 'deliveriesDelivered',
+            'deliveriesTotal', 'deliveriesPending', 'deliveriesDispatched', 'deliveriesDelivered',
             'topProducts', 'topCustomers', 'ordersByState', 'staffPerformance',
-            'recentOrders'
+            'recentOrders', 'recentDeliveries'
         ));
     }
 

@@ -55,7 +55,7 @@ class DashboardController extends Controller
         }
 
         // ── Admin stats ────────────────────────────────────────────
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             // Debt: unpaid delivery allocation balances
             $debtQ = DB::table('delivery_allocations')
                 ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')

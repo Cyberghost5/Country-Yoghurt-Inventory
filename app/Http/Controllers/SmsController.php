@@ -18,7 +18,7 @@ class SmsController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         $logs = SmsLog::with('sender')
             ->latest()
@@ -34,7 +34,7 @@ class SmsController extends Controller
     public function create(Request $request): View
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         $users = User::whereNotNull('phone')
             ->where('phone', '!=', '')
@@ -50,7 +50,7 @@ class SmsController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->isAdmin()) abort(403);
         $request->validate([
             'recipient_type' => 'required|in:all,customers,staff,custom',
             'user_ids'       => 'required_if:recipient_type,custom|array|min:1',
@@ -116,7 +116,7 @@ class SmsController extends Controller
     public function show(SmsLog $smsLog, Request $request): View
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         $smsLog->load(['sender', 'recipients']);
 
@@ -132,7 +132,7 @@ class SmsController extends Controller
         return match ($type) {
             'all'       => $base->get(['id', 'name', 'phone', 'role']),
             'customers' => $base->where('role', 'customer')->get(['id', 'name', 'phone', 'role']),
-            'staff'     => $base->whereIn('role', ['staff', 'admin'])->get(['id', 'name', 'phone', 'role']),
+            'staff'     => $base->whereIn('role', ['staff', 'admin', 'super_admin'])->get(['id', 'name', 'phone', 'role']),
             'custom'    => $base->whereIn('id', $ids)->get(['id', 'name', 'phone', 'role']),
             default     => collect(),
         };

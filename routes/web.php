@@ -64,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
 
     /* ── Deliveries ── */
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
@@ -87,6 +89,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/users/staff', [UserManagementController::class, 'storeStaff'])->name('users.store.staff');
     Route::get('/users/create-admin', [UserManagementController::class, 'createAdmin'])->name('users.create.admin');
     Route::post('/users/admin', [UserManagementController::class, 'storeAdmin'])->name('users.store.admin');
+    Route::get('/users/create-super-admin', [UserManagementController::class, 'createSuperAdmin'])->name('users.create.super_admin');
+    Route::post('/users/super-admin', [UserManagementController::class, 'storeSuperAdmin'])->name('users.store.super_admin');
     Route::get('/users/create-customer', [UserManagementController::class, 'createCustomer'])->name('users.create.customer');
     Route::post('/users/customer', [UserManagementController::class, 'storeCustomer'])->name('users.store.customer');
 

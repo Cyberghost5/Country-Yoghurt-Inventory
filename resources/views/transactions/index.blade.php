@@ -26,7 +26,7 @@
           <div class="title-block">
             <h2>Transaction History</h2>
             <p>
-              @if ($user->role === 'admin')
+              @if ($user->isAdmin())
                 All orders, payments and deliveries across the system.
               @elseif ($user->role === 'staff')
                 Your orders, payments and deliveries you scheduled.

@@ -28,7 +28,7 @@
           <div class="title-block">
             <h2>Orders</h2>
             <p>
-              @if ($user->role === 'admin')
+              @if ($user->isAdmin())
                 All orders placed by staff and customers.
               @else
                 Your order history and status.
@@ -87,7 +87,7 @@
               <thead>
                 <tr>
                   <th>Order #</th>
-                  @if ($user->role === 'admin')<th>Placed By</th>@endif
+                  @if ($user->isAdmin())<th>Placed By</th>@endif
                   <th>Date</th>
                   <th>Items</th>
                   <th>Total (&#8358;)</th>
@@ -102,7 +102,7 @@
                     <td>
                       <span class="ord-number">{{ $order->order_number }}</span>
                     </td>
-                    @if ($user->role === 'admin')
+                    @if ($user->isAdmin())
                       <td>
                         <span class="ord-placer">{{ $order->user->name ?? '-' }}</span>
                         <small class="ord-role">{{ ucfirst($order->user->role ?? '') }}</small>
@@ -132,7 +132,7 @@
                   </tr>
                 @empty
                   <tr>
-                      <td colspan="{{ $user->role === 'admin' ? 8 : 7 }}" class="inv-empty-row">
+                      <td colspan="{{ $user->isAdmin() ? 8 : 7 }}" class="inv-empty-row">
                       <i class="bi bi-inbox" style="font-size:1.4rem;"></i>
                       <p>No orders found.</p>
                     </td>

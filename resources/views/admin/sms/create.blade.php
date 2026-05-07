@@ -218,7 +218,7 @@
       const groupCounts = {
         all:       {{ $users->count() }},
         customers: {{ $users->where('role', 'customer')->count() }},
-        staff:     {{ $users->whereIn('role', ['staff', 'admin'])->count() }},
+        staff:     {{ $users->whereIn('role', ['staff', 'admin', 'super_admin'])->count() }},
         custom:    0,
       };
 

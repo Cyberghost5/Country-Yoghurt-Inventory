@@ -79,7 +79,7 @@ class PaymentController extends Controller
             $order = Order::find($orderId);
 
             if ($order) {
-                if (!in_array($user->role, ['admin', 'staff'], true) && $order->user_id !== $user->id) abort(403);
+                if (!$user->isAdminOrStaff() && $order->user_id !== $user->id) abort(403);
 
                 if (!in_array($order->status, ['approved', 'delivered'])) {
                     return redirect()->route('orders.show', $order)
@@ -101,7 +101,7 @@ class PaymentController extends Controller
 
         // For staff/admin: load customers so they can select on whose behalf this payment is
         $customers = collect();
-        if (in_array($user->role, ['admin', 'staff'], true)) {
+        if ($user->isAdminOrStaff()) {
             $customers = User::where('role', 'customer')
                 ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
                 ->orderBy('name')
@@ -175,7 +175,7 @@ class PaymentController extends Controller
 
         if ($type === 'order' && $request->filled('order_id')) {
             $order = Order::findOrFail($request->input('order_id'));
-            if (!in_array($user->role, ['admin', 'staff'], true) && $order->user_id !== $user->id) abort(403);
+            if (!$user->isAdminOrStaff() && $order->user_id !== $user->id) abort(403);
             if (!in_array($order->status, ['approved', 'delivered'])) {
                 return back()->withInput()->withErrors(['order_id' => 'That order cannot receive a payment in its current status.']);
             }
@@ -188,7 +188,7 @@ class PaymentController extends Controller
             }
         } elseif ($type === 'delivery' && $request->filled('delivery_allocation_id')) {
             $allocation = DeliveryAllocation::with('delivery')->findOrFail($request->input('delivery_allocation_id'));
-            if (!in_array($user->role, ['admin', 'staff'], true) && $allocation->customer_id !== $user->id) abort(403);
+            if (!$user->isAdminOrStaff() && $allocation->customer_id !== $user->id) abort(403);
             if ($allocation->delivery->status !== 'dispatched') {
                 return back()->withInput()->withErrors(['delivery_allocation_id' => 'That delivery is not dispatched yet.']);
             }
@@ -202,7 +202,7 @@ class PaymentController extends Controller
 
         // Determine the payment owner
         $paymentOwnerId = $user->id;
-        if (in_array($user->role, ['admin', 'staff'], true)) {
+        if ($user->isAdminOrStaff()) {
             if ($order) {
                 $paymentOwnerId = $order->user_id;
             } elseif ($allocation) {
@@ -234,7 +234,7 @@ class PaymentController extends Controller
             'status'                 => 'pending',
         ]);
 
-        $adminUser = User::where('role', 'admin')->first();
+        $adminUser = User::whereIn('role', ['admin', 'super_admin'])->first();
         if ($adminUser) {
             $payment->loadMissing('order');
             $adminUser->notify(new PaymentNotification('submitted', $payment));
@@ -280,7 +280,7 @@ class PaymentController extends Controller
     public function approve(Request $request, Payment $payment)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         if ($payment->status !== 'pending') {
             return redirect()->route('payments.show', $payment)
@@ -329,7 +329,7 @@ class PaymentController extends Controller
     public function reject(Request $request, Payment $payment)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         if ($payment->status !== 'pending') {
             return redirect()->route('payments.show', $payment)

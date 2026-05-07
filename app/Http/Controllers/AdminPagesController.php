@@ -30,7 +30,7 @@ class AdminPagesController extends Controller
         $this->ensureAdmin($request);
 
         $user = $request->user();
-        $admins = User::where('role', 'admin')
+        $admins = User::whereIn('role', ['admin', 'super_admin'])
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'phone', 'state', 'lga', 'created_at']);
 
@@ -62,7 +62,7 @@ class AdminPagesController extends Controller
     public function staffCustomerIndex(Request $request)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
 
         $debtSub = "(SELECT COALESCE(SUM(da.total_amount - COALESCE(ps.paid, 0)), 0)
             FROM delivery_allocations da
@@ -85,7 +85,7 @@ class AdminPagesController extends Controller
     public function customerShow(Request $request, User $customer)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
         if ($customer->role !== 'customer') abort(404);
 
         // Staff can only view customers in their state
@@ -134,7 +134,7 @@ class AdminPagesController extends Controller
 
     private function ensureAdmin(Request $request): void
     {
-        if (($request->user()->role ?? null) !== 'admin') {
+        if (!$request->user()?->isAdmin()) {
             abort(403);
         }
     }

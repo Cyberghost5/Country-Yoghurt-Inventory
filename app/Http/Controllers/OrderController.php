@@ -63,7 +63,7 @@ class OrderController extends Controller
 
         // Staff/admin can place order on behalf of a customer
         $customers = collect();
-        if (in_array($user->role, ['admin', 'staff'], true)) {
+        if ($user->isAdminOrStaff()) {
             $customers = User::where('role', 'customer')
                 ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
                 ->orderBy('name')
@@ -141,7 +141,7 @@ class OrderController extends Controller
 
         // Determine the order owner
         $orderOwner = $user;
-        if (in_array($user->role, ['admin', 'staff'], true) && $request->filled('customer_id')) {
+        if ($user->isAdminOrStaff() && $request->filled('customer_id')) {
             $customer = User::where('role', 'customer')
                 ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
                 ->findOrFail($request->integer('customer_id'));
@@ -213,7 +213,7 @@ class OrderController extends Controller
     public function approve(Request $request, Order $order)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         if ($order->status !== 'pending') {
             return redirect()->route('orders.show', $order)
@@ -268,7 +268,7 @@ class OrderController extends Controller
     public function reject(Request $request, Order $order)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         if ($order->status !== 'pending') {
             return redirect()->route('orders.show', $order)
@@ -294,7 +294,7 @@ class OrderController extends Controller
     public function deliver(Request $request, Order $order)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
+        if (!$user->isAdmin()) abort(403);
 
         if ($order->status !== 'approved') {
             return redirect()->route('orders.show', $order)

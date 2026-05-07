@@ -21,9 +21,9 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Deliveries</h2>
-            <p>{{ $user->role === 'admin' ? 'All delivery runs.' : 'Deliveries you have scheduled.' }}</p>
+            <p>{{ $user->isAdmin() ? 'All delivery runs.' : ($user->role === 'customer' ? 'Your delivery history.' : 'Deliveries you have scheduled.') }}</p>
           </div>
-          @if (in_array($user->role, ['admin', 'staff'], true))
+          @if ($user->isAdminOrStaff())
             <div class="top-actions">
               <a href="{{ route('deliveries.create') }}" class="primary-btn">
                 <i class="bi bi-plus-lg"></i> New Delivery Run
@@ -68,7 +68,7 @@
               <thead>
                 <tr>
                   <th>Delivery #</th>
-                  @if ($user->role === 'admin')<th>Staff</th>@endif
+                  @if ($user->isAdmin())<th>Staff</th>@endif
                   <th>Date</th>
                   <th>Customers</th>
                   <th>Total Value (&#8358;)</th>
@@ -80,7 +80,7 @@
                 @forelse ($deliveries as $delivery)
                   <tr>
                     <td><span class="ord-number">{{ $delivery->delivery_number }}</span></td>
-                    @if ($user->role === 'admin')
+                    @if ($user->isAdmin())
                       <td>{{ $delivery->staff->name ?? '-' }}</td>
                     @endif
                     <td>{{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : $delivery->created_at->format('d M Y') }}</td>
@@ -97,7 +97,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="{{ $user->role === 'admin' ? 7 : 6 }}" style="text-align:center; padding:32px; color:var(--text-soft);">
+                    <td colspan="{{ $user->isAdmin() ? 7 : 6 }}" style="text-align:center; padding:32px; color:var(--text-soft);">
                       <i class="bi bi-truck" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>
                       No deliveries found.
                     </td>

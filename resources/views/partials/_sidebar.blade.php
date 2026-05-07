@@ -33,9 +33,10 @@ $_pendingPayments = match($_u->role) {
 
 // Deliveries pending (admin/staff only)
 $_pendingDeliveries = match($_u->role) {
-    'admin' => Delivery::where('status', 'pending')->count(),
-    'staff' => Delivery::where('staff_id', $_u->id)->where('status', 'pending')->count(),
-    default => 0,
+    'admin', 'super_admin' => Delivery::where('status', 'pending')->count(),
+    'staff'    => Delivery::where('staff_id', $_u->id)->where('status', 'pending')->count(),
+    'customer' => Delivery::whereHas('allocations', fn ($q) => $q->where('customer_id', $_u->id))->where('status', 'dispatched')->count(),
+    default    => 0,
 };
 @endphp
 <button class="sidebar-close" id="sidebarClose" aria-label="Close navigation">
@@ -59,7 +60,7 @@ $_pendingDeliveries = match($_u->role) {
     <i class="bi bi-grid-1x2 nav-icon"></i>Dashboard
   </a>
 
-  @if (in_array($user->role, ['admin', 'staff'], true))
+  @if ($user->isAdminOrStaff())
     <!-- <a href="{{ route('admin.inventory.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
       <i class="bi bi-box-seam nav-icon"></i>Inventory
@@ -74,7 +75,17 @@ $_pendingDeliveries = match($_u->role) {
     @endif
   </a>
 
-  @if (in_array($user->role, ['admin', 'staff'], true))
+  @if ($user->isAdminOrStaff())
+    <a href="{{ route('deliveries.index') }}"
+       class="nav-link nav-link-anchor {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
+      <i class="bi bi-truck nav-icon"></i>Deliveries
+      @if ($_pendingDeliveries > 0)
+        <span class="notif-nav-badge">{{ $_pendingDeliveries > 99 ? '99+' : $_pendingDeliveries }}</span>
+      @endif
+    </a>
+  @endif
+
+  @if ($user->role === 'customer')
     <a href="{{ route('deliveries.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
       <i class="bi bi-truck nav-icon"></i>Deliveries
@@ -97,15 +108,17 @@ $_pendingDeliveries = match($_u->role) {
     <i class="bi bi-clock-history nav-icon"></i>Transactions
   </a>
 
-  @if ($user->role === 'admin')
+  @if ($user->isAdmin())
     <a href="{{ route('admin.reports.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
       <i class="bi bi-bar-chart-line nav-icon"></i>Reports
     </a>
+    @if ($user->role === 'super_admin')
     <a href="{{ route('admin.debts.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
       <i class="bi bi-exclamation-circle nav-icon"></i>Debts
     </a>
+    @endif
     <a href="{{ route('admin.sms.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.sms.*') ? 'active' : '' }}">
       <i class="bi bi-chat-dots nav-icon"></i>SMS Broadcast
@@ -123,11 +136,11 @@ $_pendingDeliveries = match($_u->role) {
 </nav>
 
 {{-- -- People --------------------------------------- --}}
-@if (in_array($user->role, ['admin', 'staff'], true))
+@if ($user->isAdminOrStaff())
   <p class="menu-label" style="margin-top: 18px;">People</p>
   <nav class="nav-links">
 
-    @if ($user->role === 'admin')
+    @if ($user->isAdmin())
       @php $adminMenuActive = request()->routeIs('admin.admins.index') || request()->routeIs('users.create.admin'); @endphp
       <button type="button"
               class="nav-link nav-dropdown-toggle {{ $adminMenuActive ? 'active' : '' }}"
@@ -146,6 +159,10 @@ $_pendingDeliveries = match($_u->role) {
           <a href="{{ route('users.create.admin') }}"
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.admin') ? 'active' : '' }}">
             <i class="bi bi-shield-plus nav-icon"></i>Add Admin
+          </a>
+          <a href="{{ route('users.create.super_admin') }}"
+             class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('users.create.super_admin') ? 'active' : '' }}">
+            <i class="bi bi-shield-lock nav-icon"></i>Add Super Admin
           </a>
         </div>
       </div>
@@ -189,7 +206,7 @@ $_pendingDeliveries = match($_u->role) {
     </button>
     <div class="nav-dropdown {{ $custActive ? 'nav-dropdown-open' : '' }}" id="dd-customers">
       <div>
-        @if ($user->role === 'admin')
+        @if ($user->isAdmin())
           <a href="{{ route('admin.customers.index') }}"
              class="nav-link nav-link-anchor nav-sub {{ request()->routeIs('admin.customers.index') ? 'active' : '' }}">
             <i class="bi bi-shop nav-icon"></i>View Customers

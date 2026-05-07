@@ -36,7 +36,7 @@
         </header>
 
         {{-- ── Admin overview ──────────────────────────── --}}
-        @if ($user->role === 'admin' && $adminStats)
+        @if ($user->isAdmin() && $adminStats)
 
           {{-- Date filter bar --}}
           @php
@@ -133,6 +133,7 @@
               <small class="stat-label">Total Revenue</small>
             </a>
 
+            @if ($user->role === 'super_admin')
             <a href="{{ route('admin.debts.index') }}" class="stat-card danger">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-exclamation-circle"></i></span>
@@ -140,6 +141,7 @@
               <h4 class="stat-value">&#8358;{{ number_format($adminStats['totalDebt'], 2) }}</h4>
               <small class="stat-label">Total Debt (Unpaid)</small>
             </a>
+            @endif
 
             <a href="{{ route('admin.staff.index') }}" class="stat-card">
               <div class="stat-top">

@@ -14,7 +14,31 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+
+        if ($user->role === 'customer') {
+            // Customers only see deliveries they have an allocation in
+            $query = Delivery::with(['staff', 'allocations'])
+                ->whereHas('allocations', fn ($q) => $q->where('customer_id', $user->id))
+                ->latest();
+
+            if ($status = $request->input('status')) {
+                $query->where('status', $status);
+            }
+
+            $deliveries = $query->paginate(20)->withQueryString();
+
+            $base = Delivery::whereHas('allocations', fn ($q) => $q->where('customer_id', $user->id));
+            $counts = [
+                'all'        => (clone $base)->count(),
+                'pending'    => (clone $base)->where('status', 'pending')->count(),
+                'dispatched' => (clone $base)->where('status', 'dispatched')->count(),
+                'completed'  => (clone $base)->where('status', 'completed')->count(),
+            ];
+
+            return view('deliveries.index', compact('user', 'deliveries', 'counts'));
+        }
+
+        if (!$user->isAdminOrStaff()) abort(403);
 
         $query = Delivery::with(['staff', 'allocations'])->latest();
 
@@ -47,7 +71,7 @@ class DeliveryController extends Controller
     public function create(Request $request)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
 
         $customers = User::where('role', 'customer')
             ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
@@ -61,7 +85,7 @@ class DeliveryController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
 
         $request->validate([
             'scheduled_at'                              => 'nullable|date',
@@ -124,9 +148,14 @@ class DeliveryController extends Controller
     public function show(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
-        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
+        if ($user->role === 'customer') {
+            // Customer can only view if they have an allocation in this delivery
+            if (!$delivery->allocations()->where('customer_id', $user->id)->exists()) abort(403);
+        } else {
+            if (!$user->isAdminOrStaff()) abort(403);
+            if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
+        }
 
         $delivery->load(['staff', 'allocations.customer', 'allocations.items', 'allocations.payments.user']);
 
@@ -137,12 +166,8 @@ class DeliveryController extends Controller
     public function edit(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
         if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
-        if ($delivery->status !== 'pending') {
-            return redirect()->route('deliveries.show', $delivery)
-                ->with('error', 'Only pending deliveries can be edited.');
-        }
 
         $delivery->load(['allocations.customer', 'allocations.items']);
 
@@ -158,12 +183,8 @@ class DeliveryController extends Controller
     public function update(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
         if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
-        if ($delivery->status !== 'pending') {
-            return redirect()->route('deliveries.show', $delivery)
-                ->with('error', 'Only pending deliveries can be edited.');
-        }
 
         $request->validate([
             'scheduled_at'                              => 'nullable|date',
@@ -185,7 +206,7 @@ class DeliveryController extends Controller
                 'notes'        => $request->input('notes'),
             ]);
 
-            // Delete existing allocations and items (pending = no payments yet)
+            // Delete existing allocations and items
             foreach ($delivery->allocations as $alloc) {
                 $alloc->items()->delete();
             }
@@ -228,7 +249,7 @@ class DeliveryController extends Controller
     public function dispatch(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
         if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
 
         if ($delivery->status !== 'pending') {
@@ -249,7 +270,7 @@ class DeliveryController extends Controller
     public function markCompleted(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if (!$user->isAdminOrStaff()) abort(403);
 
         // Staff can only complete their own deliveries
         if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);

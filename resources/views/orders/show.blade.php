@@ -230,7 +230,7 @@
 
 
         {{-- ── Admin actions ── --}}
-        @if ($user->role === 'admin')
+        @if ($user->isAdmin())
           @if ($order->status === 'pending')
           <section class="card ord-action-bar">
             <p class="ord-action-title">

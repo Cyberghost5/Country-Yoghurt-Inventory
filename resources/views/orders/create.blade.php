@@ -39,7 +39,7 @@
           @csrf
 
           {{-- ── Customer selector (staff / admin only) ── --}}
-          @if (in_array($user->role, ['admin', 'staff']))
+          @if ($user->isAdminOrStaff())
           <section class="card" style="margin-bottom: 16px;" id="customerSection">
             <h3 class="ord-section-title"><i class="bi bi-person"></i> Customer</h3>
             <div class="pay-form-field">

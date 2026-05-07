@@ -107,14 +107,14 @@ class UserManagementController extends Controller
 
     private function canCreateStaff(string $role): bool
     {
-        return $role === 'admin';
+        return in_array($role, ['admin', 'super_admin'], true);
     }
 
     public function editUser(Request $request, User $user)
     {
         $actor = $request->user();
         if ($actor->role === 'staff' && $user->role !== 'customer') abort(403);
-        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
+        if (!$actor->isAdminOrStaff()) abort(403);
 
         return view('users.edit', [
             'user'       => $request->user(),
@@ -128,7 +128,7 @@ class UserManagementController extends Controller
     {
         $actor = $request->user();
         if ($actor->role === 'staff' && $user->role !== 'customer') abort(403);
-        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
+        if (!$actor->isAdminOrStaff()) abort(403);
 
         $rules = [
             'name'     => ['required', 'string', 'max:255'],
@@ -176,7 +176,7 @@ class UserManagementController extends Controller
 
     public function impersonate(Request $request, User $user)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->isAdmin()) abort(403);
         if ($request->user()->id === $user->id) abort(422, 'You cannot impersonate yourself.');
         if (session('impersonating_admin_id')) abort(422, 'Already impersonating a user. Stop first.');
 
@@ -202,7 +202,7 @@ class UserManagementController extends Controller
     public function ajaxCustomers(Request $request)
     {
         $actor = $request->user();
-        if (!in_array($actor->role, ['admin', 'staff'], true)) abort(403);
+        if (!$actor->isAdminOrStaff()) abort(403);
 
         $customers = User::where('role', 'customer')
             ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
@@ -219,7 +219,7 @@ class UserManagementController extends Controller
 
     public function createAdmin(Request $request)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->isAdmin()) abort(403);
 
         return view('users.create-admin', [
             'user'   => $request->user(),
@@ -230,7 +230,7 @@ class UserManagementController extends Controller
 
     public function storeAdmin(Request $request)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->isAdmin()) abort(403);
 
         $state = $this->validatedState($request);
 
@@ -258,14 +258,55 @@ class UserManagementController extends Controller
         return redirect()->route('users.create.admin')->with('status', 'Admin account created successfully.');
     }
 
+    public function createSuperAdmin(Request $request)
+    {
+        if (!$request->user()->isAdmin()) abort(403);
+
+        return view('users.create-super-admin', [
+            'user'   => $request->user(),
+            'states' => array_keys(config('nigeria.lgas')),
+            'lgaMap' => config('nigeria.lgas'),
+        ]);
+    }
+
+    public function storeSuperAdmin(Request $request)
+    {
+        if (!$request->user()->isAdmin()) abort(403);
+
+        $state = $this->validatedState($request);
+
+        $data = $request->validate([
+            'name'                  => ['required', 'string', 'max:255'],
+            'email'                 => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone'                 => ['required', 'string', 'max:20'],
+            'state'                 => ['required', 'string'],
+            'lga'                   => ['required', 'string', 'max:120'],
+            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $this->validateLga($state, $data['lga']);
+
+        User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'phone'    => $data['phone'],
+            'state'    => $state,
+            'lga'      => $data['lga'],
+            'role'     => 'super_admin',
+            'password' => Hash::make($data['password']),
+        ]);
+
+        return redirect()->route('users.create.super_admin')->with('status', 'Super Admin account created successfully.');
+    }
+
     private function canCreateCustomer(string $role): bool
     {
-        return in_array($role, ['admin', 'staff'], true);
+        return in_array($role, ['admin', 'super_admin', 'staff'], true);
     }
 
     private function assignableStates(User $user): array
     {
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             return array_keys(config('nigeria.lgas'));
         }
 

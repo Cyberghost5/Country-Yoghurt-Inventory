@@ -29,4 +29,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'super_admin'], true);
+    }
+
+    public function isAdminOrStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'super_admin', 'staff'], true);
+    }
 }

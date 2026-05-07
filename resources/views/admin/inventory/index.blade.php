@@ -195,7 +195,7 @@
                         </button>
 
                         {{-- Delete (admin only) --}}
-                        @if ($user->role === 'admin')
+                        @if ($user->isAdmin())
                           <button class="inv-action-btn danger"
                                   title="Delete"
                                   onclick="openDelete({{ $product->id }}, '{{ addslashes($product->name) }}')">

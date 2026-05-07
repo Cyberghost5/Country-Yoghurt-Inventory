@@ -232,7 +232,7 @@
         @endif
 
         {{-- Admin actions --}}
-        @if ($user->role === 'admin' && $payment->status === 'pending')
+        @if ($user->isAdmin() && $payment->status === 'pending')
           <section class="card ord-action-bar">
             <p class="ord-action-title">
               <i class="bi bi-shield-check"></i> Review Payment

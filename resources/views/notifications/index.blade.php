@@ -38,6 +38,13 @@
                   <i class="bi bi-check2-all"></i> Mark All Read
                 </button>
               </form>
+              <form method="POST" action="{{ route('notifications.destroyAll') }}" onsubmit="return confirm('Delete all notifications?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="ghost-btn" style="color:#dc2626; border-color:#dc2626;">
+                  <i class="bi bi-trash3"></i> Delete All
+                </button>
+              </form>
             </div>
           @endif
         </header>
@@ -85,6 +92,13 @@
                   <i class="bi bi-box-arrow-up-right"></i>
                 </a>
               @endif
+              <form method="POST" action="{{ route('notifications.destroy', $notif->id) }}" style="display:inline;">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="notif-read-btn" title="Delete" style="color:#dc2626;">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
             </div>
           </div>
         @empty

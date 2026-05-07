@@ -146,15 +146,14 @@ class InventoryController extends Controller
     /* ── Helpers ── */
     private function ensureAdminOrStaff(Request $request): void
     {
-        $role = $request->user()->role ?? null;
-        if (!in_array($role, ['admin', 'staff'], true)) {
+        if (!$request->user()?->isAdminOrStaff()) {
             abort(403);
         }
     }
 
     private function ensureAdmin(Request $request): void
     {
-        if (($request->user()->role ?? null) !== 'admin') {
+        if (!$request->user()?->isAdmin()) {
             abort(403);
         }
     }

@@ -97,7 +97,7 @@
             <p>Full account details for {{ $customer->name }}</p>
           </div>
           <div class="top-actions">
-            @if ($user->role === 'admin')
+            @if ($user->isAdmin())
               <a href="{{ route('admin.customers.index') }}" class="ghost-btn">
                 <i class="bi bi-arrow-left"></i> All Customers
               </a>
@@ -106,7 +106,7 @@
                 <i class="bi bi-arrow-left"></i> All Customers
               </a>
             @endif
-            @if ($user->role === 'admin')
+            @if ($user->isAdmin())
               <a href="{{ route('users.edit', $customer->id) }}" class="ghost-btn">
                 <i class="bi bi-pencil"></i> Edit
               </a>

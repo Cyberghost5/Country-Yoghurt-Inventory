@@ -24,7 +24,7 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Payments</h2>
-            <p>{{ $user->role === 'admin' ? 'All payment submissions' : 'Your payment submissions' }}</p>
+            <p>{{ $user->isAdmin() ? 'All payment submissions' : 'Your payment submissions' }}</p>
           </div>
           @if (in_array($user->role, ['staff', 'customer'], true))
             <div class="top-actions">
@@ -73,7 +73,7 @@
               <thead>
                 <tr>
                   <th>Payment No.</th>
-                  @if ($user->role === 'admin')
+                  @if ($user->isAdmin())
                     <th>Submitted By</th>
                   @endif
                   <th>Reference</th>
@@ -88,7 +88,7 @@
                 @forelse ($payments as $payment)
                   <tr>
                     <td><span class="ord-number">{{ $payment->payment_number ?? '#'.$payment->id }}</span></td>
-                    @if ($user->role === 'admin')
+                    @if ($user->isAdmin())
                       <td>
                         <span class="ord-placer">{{ $payment->user->name ?? '-' }}</span>
                         <small class="ord-role">{{ ucfirst($payment->user->role ?? '') }}</small>
@@ -123,7 +123,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="{{ $user->role === 'admin' ? 8 : 7 }}" class="inv-empty-row">
+                    <td colspan="{{ $user->isAdmin() ? 8 : 7 }}" class="inv-empty-row">
                       <i class="bi bi-credit-card" style="font-size:1.4rem;"></i>
                       <p>No payments found.</p>
                     </td>

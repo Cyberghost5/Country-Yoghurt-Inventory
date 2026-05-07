@@ -37,4 +37,20 @@ class NotificationController extends Controller
 
         return back()->with('status', 'All notifications marked as read.');
     }
+
+    /* ── Delete a single notification ── */
+    public function destroy(Request $request, string $id)
+    {
+        $request->user()->notifications()->findOrFail($id)->delete();
+
+        return back()->with('status', 'Notification deleted.');
+    }
+
+    /* ── Delete all notifications ── */
+    public function destroyAll(Request $request)
+    {
+        $request->user()->notifications()->delete();
+
+        return back()->with('status', 'All notifications deleted.');
+    }
 }

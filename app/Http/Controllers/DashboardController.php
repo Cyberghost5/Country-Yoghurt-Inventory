@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Delivery;
+use App\Models\DeliveryAllocation;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
@@ -55,20 +56,21 @@ class DashboardController extends Controller
 
         // ── Admin stats ────────────────────────────────────────────
         if ($user->role === 'admin') {
-            // Debt needs its own DB::table query — build separately so we can add date clause
-            $debtQ = DB::table('orders')
-                ->whereIn('orders.status', ['approved', 'delivered'])
+            // Debt: unpaid delivery allocation balances
+            $debtQ = DB::table('delivery_allocations')
+                ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+                ->whereIn('deliveries.status', ['dispatched', 'completed'])
                 ->leftJoinSub(
                     DB::table('payments')
                         ->where('status', 'approved')
-                        ->select('order_id', DB::raw('SUM(amount) as paid'))
-                        ->groupBy('order_id'),
-                    'ps', 'ps.order_id', '=', 'orders.id'
+                        ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                        ->groupBy('delivery_allocation_id'),
+                    'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
                 )
-                ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
-                ->selectRaw('COALESCE(SUM(orders.total_amount - COALESCE(ps.paid, 0)), 0) as debt');
-            if ($dateStart) $debtQ->where('orders.created_at', '>=', $dateStart);
-            if ($dateEnd)   $debtQ->where('orders.created_at', '<=', $dateEnd);
+                ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
+                ->selectRaw('COALESCE(SUM(delivery_allocations.total_amount - COALESCE(ps.paid, 0)), 0) as debt');
+            if ($dateStart) $debtQ->where('deliveries.created_at', '>=', $dateStart);
+            if ($dateEnd)   $debtQ->where('deliveries.created_at', '<=', $dateEnd);
 
             $adminStats = [
                 // ── NOT date-filtered (headcount / inventory snapshots) ──
@@ -91,7 +93,7 @@ class DashboardController extends Controller
 
                 'totalDeliveries'     => $dr(Delivery::query())->count(),
                 'pendingDeliveries'   => $dr(Delivery::query())->where('status', 'pending')->count(),
-                'completedDeliveries' => $dr(Delivery::query())->where('status', 'delivered')->count(),
+                'completedDeliveries' => $dr(Delivery::query())->where('status', 'completed')->count(),
 
                 'totalDebt'     => (float) $debtQ->value('debt'),
             ];
@@ -125,7 +127,7 @@ class DashboardController extends Controller
                 'myPendingDeliveries'   => Delivery::where('staff_id', $user->id)
                                                    ->where('status', 'pending')->count(),
                 'myActiveDeliveries'    => Delivery::where('staff_id', $user->id)
-                                                   ->where('status', 'approved')->count(),
+                                                   ->where('status', 'dispatched')->count(),
 
                 // Payments from customers in their state
                 'statePayments'        => Payment::whereIn('user_id', $stateCustomerIds)->count(),
@@ -134,19 +136,20 @@ class DashboardController extends Controller
                 'stateRevenue'         => Payment::whereIn('user_id', $stateCustomerIds)
                                                  ->where('status', 'approved')->sum('amount'),
 
-                // Debt: remaining unpaid amount on approved/delivered orders in this state
-                'stateDebt'            => (float) DB::table('orders')
-                    ->whereIn('orders.status', ['approved', 'delivered'])
-                    ->whereIn('orders.user_id', $stateCustomerIds)
+                // Debt: unpaid delivery allocation balances for customers in this state
+                'stateDebt'            => (float) DB::table('delivery_allocations')
+                    ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+                    ->whereIn('deliveries.status', ['dispatched', 'completed'])
+                    ->whereIn('delivery_allocations.customer_id', $stateCustomerIds)
                     ->leftJoinSub(
                         DB::table('payments')
                             ->where('status', 'approved')
-                            ->select('order_id', DB::raw('SUM(amount) as paid'))
-                            ->groupBy('order_id'),
-                        'ps', 'ps.order_id', '=', 'orders.id'
+                            ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                            ->groupBy('delivery_allocation_id'),
+                        'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
                     )
-                    ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
-                    ->selectRaw('COALESCE(SUM(orders.total_amount - COALESCE(ps.paid, 0)), 0) as debt')
+                    ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
+                    ->selectRaw('COALESCE(SUM(delivery_allocations.total_amount - COALESCE(ps.paid, 0)), 0) as debt')
                     ->value('debt'),
             ];
         }
@@ -163,25 +166,26 @@ class DashboardController extends Controller
                 'totalPaid'      => Payment::where('user_id', $user->id)->where('status', 'approved')->sum('amount'),
                 'pendingPayments'=> Payment::where('user_id', $user->id)->where('status', 'pending')->count(),
 
-                'myDebt'         => (float) DB::table('orders')
-                    ->whereIn('orders.status', ['approved', 'delivered'])
-                    ->where('orders.user_id', $user->id)
+                'myDebt'         => (float) DB::table('delivery_allocations')
+                    ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+                    ->whereIn('deliveries.status', ['dispatched', 'completed'])
+                    ->where('delivery_allocations.customer_id', $user->id)
                     ->leftJoinSub(
                         DB::table('payments')
                             ->where('status', 'approved')
-                            ->select('order_id', DB::raw('SUM(amount) as paid'))
-                            ->groupBy('order_id'),
-                        'ps', 'ps.order_id', '=', 'orders.id'
+                            ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                            ->groupBy('delivery_allocation_id'),
+                        'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
                     )
-                    ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
-                    ->selectRaw('COALESCE(SUM(orders.total_amount - COALESCE(ps.paid, 0)), 0) as debt')
+                    ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
+                    ->selectRaw('COALESCE(SUM(delivery_allocations.total_amount - COALESCE(ps.paid, 0)), 0) as debt')
                     ->value('debt'),
 
-                'totalDeliveries'    => Delivery::whereHas('order', fn($q) => $q->where('user_id', $user->id))->count(),
-                'pendingDeliveries'  => Delivery::whereHas('order', fn($q) => $q->where('user_id', $user->id))
-                                                ->where('status', 'pending')->count(),
-                'completedDeliveries'=> Delivery::whereHas('order', fn($q) => $q->where('user_id', $user->id))
-                                                ->where('status', 'delivered')->count(),
+                'totalDeliveries'    => DeliveryAllocation::where('customer_id', $user->id)->count(),
+                'pendingDeliveries'  => DeliveryAllocation::where('customer_id', $user->id)
+                                                ->whereHas('delivery', fn($q) => $q->where('status', 'pending'))->count(),
+                'completedDeliveries'=> DeliveryAllocation::where('customer_id', $user->id)
+                                                ->whereHas('delivery', fn($q) => $q->where('status', 'completed'))->count(),
             ];
         }
 

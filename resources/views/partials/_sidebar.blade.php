@@ -60,10 +60,10 @@ $_pendingDeliveries = match($_u->role) {
   </a>
 
   @if (in_array($user->role, ['admin', 'staff'], true))
-    <a href="{{ route('admin.inventory.index') }}"
+    <!-- <a href="{{ route('admin.inventory.index') }}"
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
       <i class="bi bi-box-seam nav-icon"></i>Inventory
-    </a>
+    </a> -->
   @endif
 
   <a href="{{ route('orders.index') }}"
@@ -226,6 +226,9 @@ $_pendingDeliveries = match($_u->role) {
     </button>
   </form>
 </div>
+<p style="text-align:center; font-size:0.7rem; color:var(--text-soft, #a09880); letter-spacing:0.04em; margin:10px 0 4px; opacity:0.7;">
+  Powered by <strong style="font-weight:600; color:var(--text-soft, #a09880);"><a href="https://zeetechfoundation.org" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">Zee Tech Ventures</a></strong>
+</p>
 
 <script>
   document.querySelectorAll('.nav-dropdown-toggle').forEach(function (btn) {

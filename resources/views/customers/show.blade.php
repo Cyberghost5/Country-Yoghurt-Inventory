@@ -178,7 +178,7 @@
         </div>
 
         {{-- ── Orders ── --}}
-        <section class="card table-card" style="margin-bottom: 16px;">
+        <!-- <section class="card table-card" style="margin-bottom: 16px;">
           <div class="card-head">
             <div>
               <h3 class="section-heading"><i class="bi bi-bag"></i> Orders</h3>
@@ -239,7 +239,7 @@
               </tbody>
             </table>
           </div>
-        </section>
+        </section> -->
 
         {{-- ── Payments ── --}}
         <section class="card table-card" style="margin-bottom: 16px;">
@@ -248,18 +248,18 @@
               <h3 class="section-heading"><i class="bi bi-credit-card"></i> Payments</h3>
               <span>{{ $payments->count() }} total</span>
             </div>
-            <a href="{{ route('payments.create') }}" class="ghost-btn">
+            <!-- <a href="{{ route('payments.create') }}" class="ghost-btn">
               <i class="bi bi-plus"></i> New Payment
-            </a>
+            </a> -->
           </div>
           <div class="table-scroll">
             <table class="dash-table">
               <thead>
                 <tr>
-                  <th>Order #</th>
+                  <th>Payment No.</th>
+                  <th>Reference</th>
                   <th>Amount</th>
                   <th>Method</th>
-                  <th>Reference</th>
                   <th>Status</th>
                   <th>Date</th>
                   <th></th>
@@ -268,10 +268,24 @@
               <tbody>
                 @forelse($payments as $p)
                   <tr>
-                    <td>{{ $p->order?->order_number ?? '—' }}</td>
+                    <td>{{ $p->payment_number ?: '—' }}</td>
+                    <td>
+                      @if ($p->order)
+                        <a href="{{ route('orders.show', $p->order_id) }}" style="color:var(--primary);text-decoration:none;">
+                          {{ $p->order->order_number }}
+                        </a>
+                      @elseif ($p->deliveryAllocation?->delivery)
+                        <a href="{{ route('deliveries.show', $p->deliveryAllocation->delivery_id) }}" style="color:var(--primary);text-decoration:none;">
+                          {{ $p->deliveryAllocation->delivery->delivery_number }}
+                        </a>
+                      @elseif ($p->reason)
+                        <span style="color:var(--text-soft);font-size:0.82rem;">{{ Str::limit($p->reason, 30) }}</span>
+                      @else
+                        <span style="color:var(--text-soft);">—</span>
+                      @endif
+                    </td>
                     <td>&#8358;{{ number_format($p->amount, 2) }}</td>
                     <td>{{ ucwords(str_replace('_', ' ', $p->payment_method)) }}</td>
-                    <td>{{ $p->payment_number ?: '—' }}</td>
                     <td>
                       <span class="status-pill
                         {{ match($p->status) {
@@ -304,10 +318,10 @@
             <table class="dash-table">
               <thead>
                 <tr>
-                  <th>Order #</th>
-                  <th>Order Total</th>
+                  <th>Delivery #</th>
+                  <th>Items</th>
+                  <th>Total</th>
                   <th>Assigned Staff</th>
-                  <th>Address</th>
                   <th>Scheduled</th>
                   <th>Status</th>
                   <th></th>
@@ -316,22 +330,21 @@
               <tbody>
                 @forelse($deliveries as $d)
                   <tr>
-                    <td><strong>{{ $d->order?->order_number ?? '—' }}</strong></td>
-                    <td>&#8358;{{ number_format($d->order?->total_amount ?? 0, 2) }}</td>
-                    <td>{{ $d->staff?->name ?? '—' }}</td>
-                    <td>{{ Str::limit($d->delivery_address, 40) }}</td>
-                    <td>{{ $d->scheduled_at ? \Carbon\Carbon::parse($d->scheduled_at)->format('d M Y') : '—' }}</td>
+                    <td><strong>{{ $d->delivery->delivery_number ?? '—' }}</strong></td>
+                    <td>{{ $d->items->count() }} item(s)</td>
+                    <td>&#8358;{{ number_format($d->total_amount, 2) }}</td>
+                    <td>{{ $d->delivery?->staff?->name ?? '—' }}</td>
+                    <td>{{ $d->delivery?->scheduled_at ? $d->delivery->scheduled_at->format('d M Y') : '—' }}</td>
                     <td>
                       <span class="status-pill
-                        {{ match($d->status) {
+                        {{ match($d->delivery?->status) {
                           'pending'   => 'pill-pending',
-                          'approved'  => 'pill-approved',
-                          'delivered' => 'pill-delivered',
-                          'rejected' => 'pill-rejected',
+                          'dispatched' => 'pill-approved',
+                          'completed' => 'pill-delivered',
                           default     => ''
-                        } }}">{{ ucfirst($d->status) }}</span>
+                        } }}">{{ ucfirst($d->delivery?->status ?? '—') }}</span>
                     </td>
-                    <td><a href="{{ route('deliveries.show', $d->id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a></td>
+                    <td><a href="{{ route('deliveries.show', $d->delivery_id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a></td>
                   </tr>
                 @empty
                   <tr><td colspan="7" style="text-align:center; color:var(--text-soft); padding:20px;">No deliveries yet.</td></tr>

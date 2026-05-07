@@ -59,10 +59,7 @@ class OrderController extends Controller
     /* ── Create form ── */
     public function create(Request $request)
     {
-        $user     = $request->user();
-        $products = Product::where('quantity', '>', 0)
-                           ->orderBy('name')
-                           ->get(['id', 'name', 'category', 'unit', 'selling_price', 'quantity']);
+        $user = $request->user();
 
         // Staff/admin can place order on behalf of a customer
         $customers = collect();
@@ -73,7 +70,7 @@ class OrderController extends Controller
                 ->get(['id', 'name', 'shop_name', 'state']);
         }
 
-        return view('orders.create', compact('user', 'products', 'customers'));
+        return view('orders.create', compact('user', 'customers'));
     }
 
     /* ── AJAX stock check ── */
@@ -135,7 +132,8 @@ class OrderController extends Controller
 
         $request->validate([
             'items'                  => 'required|array|min:1',
-            'items.*.product_id'     => 'required|integer|exists:products,id',
+            'items.*.product_name'   => 'required|string|max:255',
+            'items.*.unit_price'     => 'required|numeric|min:0.01',
             'items.*.quantity'       => 'required|integer|min:1',
             'notes'                  => 'nullable|string|max:1000',
             'customer_id'            => 'nullable|integer|exists:users,id',
@@ -154,32 +152,14 @@ class OrderController extends Controller
         $itemRecords = [];
         $totalAmount = 0;
 
-        // Deduplicate: sum quantities if same product appears twice
-        $grouped = [];
         foreach ($rawItems as $item) {
-            $pid = (int) $item['product_id'];
-            if (isset($grouped[$pid])) {
-                $grouped[$pid] += (int) $item['quantity'];
-            } else {
-                $grouped[$pid] = (int) $item['quantity'];
-            }
-        }
-
-        foreach ($grouped as $productId => $qty) {
-            $product   = Product::findOrFail($productId);
-
-            // Validate stock at submission time
-            if ($product->quantity < $qty) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['items' => "{$product->name} only has {$product->quantity} unit(s) available (you requested {$qty})."]);
-            }
-
-            $subtotal  = round($product->selling_price * $qty, 2);
+            $qty      = (int) $item['quantity'];
+            $price    = round((float) $item['unit_price'], 2);
+            $subtotal = round($price * $qty, 2);
             $itemRecords[] = [
-                'product_id'   => $product->id,
-                'product_name' => $product->name,
-                'unit_price'   => $product->selling_price,
+                'product_id'   => null,
+                'product_name' => trim($item['product_name']),
+                'unit_price'   => $price,
                 'quantity'     => $qty,
                 'subtotal'     => $subtotal,
             ];
@@ -192,7 +172,9 @@ class OrderController extends Controller
                 'user_id'      => $orderOwner->id,
                 'notes'        => $request->input('notes'),
                 'total_amount' => round($totalAmount, 2),
-                'status'       => 'pending',
+                'status'       => 'approved',
+                'approved_by'  => $user->id,
+                'approved_at'  => now(),
             ]);
 
             $order->items()->createMany($itemRecords);
@@ -200,14 +182,8 @@ class OrderController extends Controller
             return $order;
         });
 
-        // Notify admin via database + email
-        $adminUser = User::where('role', 'admin')->first();
-        if ($adminUser) {
-            $adminUser->notify(new OrderNotification('placed', $order));
-        }
-
         return redirect()->route('orders.show', $order)
-                         ->with('status', "Order {$order->order_number} placed. Awaiting admin approval.");
+                         ->with('status', "Order {$order->order_number} placed and approved.");
     }
 
     /* ── Show ── */
@@ -228,7 +204,7 @@ class OrderController extends Controller
             }
         }
 
-        $order->load(['user', 'items', 'approvedBy', 'payments', 'deliveries.staff']);
+        $order->load(['user', 'items', 'approvedBy', 'payments']);
 
         return view('orders.show', compact('user', 'order'));
     }

@@ -125,7 +125,8 @@
 
           <p class="lp-footer-note">
             This portal is restricted to authorized personnel only.<br>
-            Country Yoghurt &copy; {{ date('Y') }} &middot; Bauchi, Nigeria
+            Country Yoghurt &copy; {{ date('Y') }} &middot; Bauchi, Nigeria <br>
+            Powered by <a href="https://zeetechfoundation.org" target="_blank" rel="noopener noreferrer">Zee Tech Ventures</a>
           </p>
         </div>
       </div>

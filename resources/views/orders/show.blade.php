@@ -212,36 +212,19 @@
 
         {{-- ── Staff: Delivery section ── --}}
         @if ($user->role === 'staff' && $order->status === 'approved')
-          @php $latestDelivery = $order->deliveries->sortByDesc('created_at')->first(); @endphp
-          @if ($latestDelivery)
-            <section class="card ord-action-bar" style="border-left: 4px solid #1a6b45;">
-              <p class="ord-action-title">
-                <i class="bi bi-truck"></i> Delivery
-              </p>
-              <div class="ord-action-btns">
-                <span class="dlv-status-badge {{ $latestDelivery->status_css }}">{{ $latestDelivery->status_label }}</span>
-                <a href="{{ route('deliveries.show', $latestDelivery) }}" class="ghost-btn">
-                  <i class="bi bi-eye"></i> View Delivery
-                </a>
-                @if ($latestDelivery->status === 'rejected')
-                  <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
-                    <i class="bi bi-truck"></i> Schedule Delivery
-                  </a>
-                @endif
-              </div>
-            </section>
-          @else
-            <section class="card ord-action-bar">
-              <p class="ord-action-title">
-                <i class="bi bi-truck"></i> Delivery
-              </p>
-              <div class="ord-action-btns">
-                <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
-                  <i class="bi bi-truck"></i> Schedule Delivery
-                </a>
-              </div>
-            </section>
-          @endif
+          <section class="card ord-action-bar">
+            <p class="ord-action-title">
+              <i class="bi bi-truck"></i> Delivery
+            </p>
+            <div class="ord-action-btns">
+              <a href="{{ route('deliveries.index') }}" class="ghost-btn">
+                <i class="bi bi-truck"></i> View Deliveries
+              </a>
+              <a href="{{ route('deliveries.create') }}" class="primary-btn">
+                <i class="bi bi-plus-lg"></i> New Delivery
+              </a>
+            </div>
+          </section>
         @endif
 
 
@@ -298,42 +281,17 @@
             </div>
           </div>
           @elseif ($order->status === 'approved')
-          @php $latestDelivery = $order->deliveries->sortByDesc('created_at')->first(); @endphp
           <section class="card ord-action-bar">
             <p class="ord-action-title">
               <i class="bi bi-truck"></i> Delivery
             </p>
             <div class="ord-action-btns">
-              @if ($latestDelivery)
-                <span class="dlv-status-badge {{ $latestDelivery->status_css }}">{{ $latestDelivery->status_label }}</span>
-                <a href="{{ route('deliveries.show', $latestDelivery) }}" class="ghost-btn">
-                  <i class="bi bi-eye"></i> View Delivery
-                </a>
-                @if ($latestDelivery->status === 'pending')
-                  <form method="POST" action="{{ route('deliveries.approve', $latestDelivery) }}" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="primary-btn">
-                      <i class="bi bi-check-lg"></i> Approve Delivery
-                    </button>
-                  </form>
-                @elseif ($latestDelivery->status === 'approved')
-                  <form method="POST" action="{{ route('deliveries.deliver', $latestDelivery) }}" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="primary-btn" style="background:#1a6b45;">
-                      <i class="bi bi-check2-all"></i> Mark as Delivered
-                    </button>
-                  </form>
-                @elseif ($latestDelivery->status === 'rejected')
-                  <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
-                    <i class="bi bi-truck"></i> Schedule Delivery
-                  </a>
-                @endif
-              @else
-                <span style="font-size:0.85rem; color:var(--text-soft);">No delivery scheduled yet</span>
-                <a href="{{ route('deliveries.create', ['order_id' => $order->id]) }}" class="primary-btn">
-                  <i class="bi bi-truck"></i> Schedule Delivery
-                </a>
-              @endif
+              <a href="{{ route('deliveries.index') }}" class="ghost-btn">
+                <i class="bi bi-truck"></i> View Deliveries
+              </a>
+              <a href="{{ route('deliveries.create') }}" class="primary-btn">
+                <i class="bi bi-plus-lg"></i> New Delivery
+              </a>
             </div>
           </section>
           @endif

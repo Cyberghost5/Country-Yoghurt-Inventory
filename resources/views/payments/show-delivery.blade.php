@@ -30,9 +30,9 @@
             <a href="{{ route('payments.index') }}" class="ghost-btn no-print">
               <i class="bi bi-arrow-left"></i> All Payments
             </a>
-            @if ($payment->order)
-              <a href="{{ route('orders.show', $payment->order) }}" class="ghost-btn no-print">
-                <i class="bi bi-bag"></i> View Order
+            @if ($payment->deliveryAllocation)
+              <a href="{{ route('deliveries.show', $payment->deliveryAllocation->delivery_id) }}" class="ghost-btn no-print">
+                <i class="bi bi-truck"></i> View Delivery
               </a>
             @endif
             <button onclick="window.print()" class="ghost-btn no-print">
@@ -84,21 +84,29 @@
             <p class="ord-meta-label">Method</p>
             <p class="ord-meta-value">{{ $payment->method_label }}</p>
           </div>
-          @if ($payment->order)
-            <div class="ord-meta-card">
-              <p class="ord-meta-label">Order</p>
-              <p class="ord-meta-value">
-                <a href="{{ route('orders.show', $payment->order) }}" class="pay-order-link">
-                  {{ $payment->order->order_number }}
+
+          {{-- Delivery reference instead of order --}}
+          <div class="ord-meta-card">
+            <p class="ord-meta-label">Delivery</p>
+            <p class="ord-meta-value">
+              @if ($payment->deliveryAllocation && $payment->deliveryAllocation->delivery)
+                <a href="{{ route('deliveries.show', $payment->deliveryAllocation->delivery_id) }}" class="pay-order-link">
+                  {{ $payment->deliveryAllocation->delivery->delivery_number }}
                 </a>
-              </p>
-            </div>
-          @elseif ($payment->reason)
-            <div class="ord-meta-card">
-              <p class="ord-meta-label">Payment Type</p>
-              <p class="ord-meta-value" style="font-size:0.88rem;">Standalone / Other</p>
-            </div>
-          @endif
+              @else
+                <span style="color:var(--text-soft); font-size:0.85rem;">—</span>
+              @endif
+            </p>
+          </div>
+
+          <div class="ord-meta-card">
+            <p class="ord-meta-label">Customer</p>
+            <p class="ord-meta-value">{{ $payment->deliveryAllocation->customer->name ?? '—' }}</p>
+            @if ($payment->deliveryAllocation?->customer?->shop_name)
+              <small class="ord-meta-sub">{{ $payment->deliveryAllocation->customer->shop_name }}</small>
+            @endif
+          </div>
+
           <div class="ord-meta-card">
             <p class="ord-meta-label">Submitted By</p>
             <p class="ord-meta-value">{{ $payment->user->name ?? '-' }}</p>
@@ -121,12 +129,59 @@
           @endif
         </div>
 
-        {{-- Reason --}}
-        @if ($payment->reason)
-          <div class="card" style="margin-bottom: 16px; padding: 14px 16px;">
-            <p class="ord-meta-label" style="margin-bottom: 6px;"><i class="bi bi-info-circle"></i> Reason for Payment</p>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-main);">{{ $payment->reason }}</p>
-          </div>
+        {{-- Allocation summary --}}
+        @if ($payment->deliveryAllocation)
+          @php
+            $alloc = $payment->deliveryAllocation;
+            $totalPaid = $alloc->payments->where('status', 'approved')->sum('amount');
+            $remaining = max(0, $alloc->total_amount - $totalPaid);
+          @endphp
+          <section class="card" style="margin-bottom: 16px; padding: 16px 18px;">
+            <p class="ord-meta-label" style="margin-bottom: 12px;">
+              <i class="bi bi-box-seam"></i> Delivery Allocation Summary
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px;">
+              <div style="background:#fafaf8;border:1px solid #e5e0d6;border-radius:8px;padding:12px;">
+                <p style="font-size:0.73rem;color:var(--text-soft);margin-bottom:3px;">Allocation Total</p>
+                <p style="font-weight:700;font-size:0.97rem;">₦{{ number_format($alloc->total_amount, 2) }}</p>
+              </div>
+              <div style="background:#fafaf8;border:1px solid #e5e0d6;border-radius:8px;padding:12px;">
+                <p style="font-size:0.73rem;color:var(--text-soft);margin-bottom:3px;">Total Paid</p>
+                <p style="font-weight:700;font-size:0.97rem;color:#16a34a;">₦{{ number_format($totalPaid, 2) }}</p>
+              </div>
+              <div style="background:#fafaf8;border:1px solid #e5e0d6;border-radius:8px;padding:12px;">
+                <p style="font-size:0.73rem;color:var(--text-soft);margin-bottom:3px;">Remaining</p>
+                <p style="font-weight:700;font-size:0.97rem;color:{{ $remaining > 0 ? '#dc2626' : '#16a34a' }};">
+                  {{ $remaining > 0 ? '₦'.number_format($remaining, 2) : 'Fully Paid' }}
+                </p>
+              </div>
+            </div>
+
+            {{-- Items in allocation --}}
+            @if ($alloc->items && $alloc->items->count())
+              <p style="font-size:0.78rem;font-weight:600;color:var(--text-soft);margin-bottom:6px;">Items Delivered</p>
+              <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:4px;">
+                <thead>
+                  <tr style="background:#f7f4ee;">
+                    <th style="text-align:left;padding:6px 10px;border-bottom:1px solid #e5e0d6;font-weight:600;font-size:0.78rem;color:var(--text-soft);">Product</th>
+                    <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #e5e0d6;font-weight:600;font-size:0.78rem;color:var(--text-soft);">Qty</th>
+                    <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #e5e0d6;font-weight:600;font-size:0.78rem;color:var(--text-soft);">Unit Price</th>
+                    <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #e5e0d6;font-weight:600;font-size:0.78rem;color:var(--text-soft);">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach ($alloc->items as $item)
+                    <tr>
+                      <td style="padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->product_name ?? $item->product->name ?? '—' }}</td>
+                      <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->quantity }}</td>
+                      <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->unit_price, 2) }}</td>
+                      <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->quantity * $item->unit_price, 2) }}</td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            @endif
+          </section>
         @endif
 
         {{-- Notes --}}

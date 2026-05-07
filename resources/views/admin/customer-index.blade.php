@@ -26,17 +26,32 @@
           <div class="card-head"><div><h3>Customer List</h3><span>{{ $customers->count() }} customer accounts</span></div></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Customer</th><th>Shop</th><th>Email</th><th>Phone</th><th>Address</th><th>State</th><th>LGA</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Shop</th>
+                  <th>Phone</th>
+                  <th>Address</th>
+                  <th>LGA</th>
+                  <th>State</th>
+                  <th>Debt</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 @forelse($customers as $row)
                   <tr>
-                    <td>{{ $row->name }}</td>
                     <td>{{ $row->shop_name }}</td>
-                    <td>{{ $row->email }}</td>
                     <td>{{ $row->phone }}</td>
                     <td>{{ $row->address }}</td>
-                    <td>{{ $row->state }}</td>
                     <td>{{ $row->lga }}</td>
+                    <td>{{ $row->state }}</td>
+                    <td>
+                      @if ($row->outstanding_debt > 0)
+                        <span style="color:#c0392b;font-weight:600;">₦{{ number_format($row->outstanding_debt, 2) }}</span>
+                      @else
+                        <span style="color:#2a9d54;">₦0.00</span>
+                      @endif
+                    </td>
                     <td class="user-actions">
                       <a href="{{ route('customers.show', $row->id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a>
                       @if ($user->role === 'admin')

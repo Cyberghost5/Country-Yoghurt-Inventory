@@ -4,66 +4,67 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Delivery extends Model
 {
     protected $fillable = [
-        'order_id',
+        'delivery_number',
         'staff_id',
-        'delivery_address',
         'scheduled_at',
         'notes',
         'status',
-        'rejection_reason',
-        'approved_by',
-        'approved_at',
-        'delivered_at',
+        'dispatched_at',
+        'completed_at',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
-        'approved_at'  => 'datetime',
-        'delivered_at' => 'datetime',
+        'scheduled_at'  => 'date',
+        'dispatched_at' => 'datetime',
+        'completed_at'  => 'datetime',
     ];
 
     /* ── Relationships ── */
-
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
 
     public function staff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'staff_id');
     }
 
-    public function approvedBy(): BelongsTo
+    public function allocations(): HasMany
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->hasMany(DeliveryAllocation::class);
     }
 
-    /* ── Computed ── */
+    /* ── Helpers ── */
+
+    public function totalAmount(): float
+    {
+        return (float) $this->allocations->sum('total_amount');
+    }
+
+    public function customerCount(): int
+    {
+        return $this->allocations->count();
+    }
 
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pending'   => 'Pending Approval',
-            'approved'  => 'Out for Delivery',
-            'delivered' => 'Delivered',
-            'rejected'  => 'Rejected',
-            default     => ucfirst($this->status),
+            'pending'    => 'Pending',
+            'dispatched' => 'Dispatched',
+            'completed'  => 'Completed',
+            default      => ucfirst($this->status),
         };
     }
 
     public function getStatusCssAttribute(): string
     {
         return match ($this->status) {
-            'pending'   => 'dlv-status-pending',
-            'approved'  => 'dlv-status-approved',
-            'delivered' => 'dlv-status-delivered',
-            'rejected'  => 'dlv-status-rejected',
-            default     => '',
+            'pending'    => 'status-pending',
+            'dispatched' => 'status-approved',
+            'completed'  => 'status-delivered',
+            default      => '',
         };
     }
 }

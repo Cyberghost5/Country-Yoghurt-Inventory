@@ -1,5 +1,6 @@
 /* --- Updated for logo color harmony --- */
 :root {
+  --accent: #1d086c;
   --page-bg: #f8f5ee;
   --panel-bg: #fcf8f2;
   --card-bg: #fffdfa;
@@ -3108,4 +3109,72 @@ tbody td {
 
   /* ── Page settings ── */
   @page { margin: 16mm 14mm; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   GENERIC FORM UTILITIES (delivery / payment create forms)
+   ════════════════════════════════════════════════════════════ */
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #3a3b34;
+  margin-bottom: 7px;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.84rem;
+  background: #fefdfb;
+  color: var(--text-main);
+  appearance: auto;
+}
+
+.form-input:focus {
+  outline: 2px solid rgba(29, 8, 108, 0.15);
+  border-color: #1d086c;
+}
+
+textarea.form-input {
+  resize: vertical;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GENERIC STATUS BADGES
+   ════════════════════════════════════════════════════════════ */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.status-pending   { background: #fff8e1; color: #b45309; }
+.status-approved  { background: #e8f5e9; color: #1a6b45; }
+.status-delivered { background: #e3f2fd; color: #1565c0; }
+.status-rejected  { background: #fdecea; color: #c0392b; }
+
+/* ════════════════════════════════════════════════════════════
+   DELIVERY CREATE — CUSTOMER SECTION INPUTS
+   ════════════════════════════════════════════════════════════ */
+
+.dlv-customer-section .form-input {
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.84rem;
 }

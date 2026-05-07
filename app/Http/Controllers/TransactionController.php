@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Delivery;
+use App\Models\DeliveryAllocation;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\Request;
@@ -53,24 +54,40 @@ class TransactionController extends Controller
         ]);
 
         /* ── Deliveries ── */
-        $deliveriesQuery = Delivery::with(['order.user', 'staff'])->latest();
-        if ($user->role === 'staff') {
-            $deliveriesQuery->where('staff_id', $user->id);
-        } elseif ($user->role === 'customer') {
-            // customers see deliveries for their own orders
-            $deliveriesQuery->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
+        if ($user->role === 'customer') {
+            // Customers see their own delivery allocations
+            $deliveries = DeliveryAllocation::where('customer_id', $user->id)
+                ->with(['delivery.staff'])
+                ->latest()
+                ->get()
+                ->map(fn ($d) => (object) [
+                    'type'        => 'delivery',
+                    'id'          => $d->delivery_id,
+                    'ref'         => $d->delivery?->delivery_number ?? ('DLV-' . str_pad($d->id, 5, '0', STR_PAD_LEFT)),
+                    'description' => 'Delivery allocation',
+                    'amount'      => $d->total_amount,
+                    'status'      => $d->delivery?->status ?? 'pending',
+                    'date'        => $d->created_at,
+                    'url'         => route('deliveries.show', $d->delivery_id),
+                    'icon'        => 'bi-truck',
+                ]);
+        } else {
+            $deliveriesQuery = Delivery::with(['staff', 'allocations'])->latest();
+            if ($user->role === 'staff') {
+                $deliveriesQuery->where('staff_id', $user->id);
+            }
+            $deliveries = $deliveriesQuery->get()->map(fn ($d) => (object) [
+                'type'        => 'delivery',
+                'id'          => $d->id,
+                'ref'         => $d->delivery_number,
+                'description' => 'Delivery scheduled' . ($user->role === 'admin' ? ' by ' . ($d->staff?->name ?? 'staff') : ''),
+                'amount'      => $d->totalAmount() ?: null,
+                'status'      => $d->status,
+                'date'        => $d->created_at,
+                'url'         => route('deliveries.show', $d),
+                'icon'        => 'bi-truck',
+            ]);
         }
-        $deliveries = $deliveriesQuery->get()->map(fn ($d) => (object) [
-            'type'        => 'delivery',
-            'id'          => $d->id,
-            'ref'         => $d->order?->order_number ?? ('DLV-' . str_pad($d->id, 5, '0', STR_PAD_LEFT)),
-            'description' => 'Delivery scheduled' . ($user->role === 'admin' ? ' by ' . ($d->staff?->name ?? 'staff') : ''),
-            'amount'      => null,
-            'status'      => $d->status,
-            'date'        => $d->created_at,
-            'url'         => route('deliveries.show', $d),
-            'icon'        => 'bi-truck',
-        ]);
 
         /* ── Merge & sort ── */
         $transactions = collect()

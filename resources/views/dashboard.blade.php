@@ -105,13 +105,13 @@
               </small>
             </a>
 
-            <a href="{{ route('orders.index') }}" class="stat-card success">
+            <!-- <a href="{{ route('orders.index') }}" class="stat-card success">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['approvedOrders'] }}</h4>
               <small class="stat-label">Approved Orders</small>
-            </a>
+            </a> -->
 
             <a href="{{ route('payments.index') }}" class="stat-card info">
               <div class="stat-top">
@@ -165,7 +165,7 @@
               <small class="stat-label">Active States</small>
             </a>
 
-            <a href="{{ route('admin.inventory.index') }}" class="stat-card info">
+            <!-- <a href="{{ route('admin.inventory.index') }}" class="stat-card info">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-box-seam"></i></span>
               </div>
@@ -175,7 +175,7 @@
                   &nbsp;<span class="badge-warn">{{ $adminStats['lowStock'] + $adminStats['outOfStock'] }} alert{{ ($adminStats['lowStock'] + $adminStats['outOfStock']) > 1 ? 's' : '' }}</span>
                 @endif
               </small>
-            </a>
+            </a> -->
             
             <a href="{{ route('deliveries.index') }}" class="stat-card">
               <div class="stat-top">
@@ -197,21 +197,21 @@
               <small class="stat-label">Completed Deliveries</small>
             </a>
 
-            <a href="{{ route('admin.inventory.index') }}" class="stat-card warn">
+            <!-- <a href="{{ route('admin.inventory.index') }}" class="stat-card warn">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-exclamation-triangle"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['lowStock'] }}</h4>
               <small class="stat-label">Low Stock Items</small>
-            </a>
+            </a> -->
 
-            <a href="{{ route('admin.inventory.index') }}" class="stat-card danger">
+            <!-- <a href="{{ route('admin.inventory.index') }}" class="stat-card danger">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-x-circle"></i></span>
               </div>
               <h4 class="stat-value">{{ $adminStats['outOfStock'] }}</h4>
               <small class="stat-label">Out of Stock</small>
-            </a>
+            </a> -->
 
             <a href="{{ route('admin.sms.index') }}" class="stat-card sms-balance-card">
               <div class="stat-top">
@@ -292,6 +292,21 @@
 
           {{-- Row 1: Orders in state --}}
           <section class="kpi-grid" style="margin-bottom: 12px;">
+            <a href="{{ route('deliveries.index') }}" class="stat-card">
+              <div class="stat-top">
+                <span class="mini-icon"><i class="bi bi-truck"></i></span>
+              </div>
+              <h4 class="stat-value">{{ $staffStats['myDeliveries'] }}</h4>
+              <small class="stat-label">My Deliveries
+                @if($staffStats['myPendingDeliveries'] > 0)
+                  &nbsp;<span class="badge-warn">{{ $staffStats['myPendingDeliveries'] }} pending</span>
+                @endif
+                @if($staffStats['myActiveDeliveries'] > 0)
+                  &nbsp;<span class="badge-info">{{ $staffStats['myActiveDeliveries'] }} active</span>
+                @endif
+              </small>
+            </a>
+
             <a href="{{ route('orders.index') }}" class="stat-card">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-bag-check"></i></span>
@@ -316,13 +331,13 @@
               </small>
             </a>
 
-            <a href="{{ route('payments.index') }}" class="stat-card success">
+            <!-- <a href="{{ route('payments.index') }}" class="stat-card success">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-currency-exchange"></i></span>
               </div>
               <h4 class="stat-value">&#8358;{{ number_format($staffStats['stateRevenue'], 2) }}</h4>
               <small class="stat-label">Revenue from State</small>
-            </a>
+            </a> -->
 
             <a href="{{ route('orders.index') }}" class="stat-card danger">
               <div class="stat-top">
@@ -330,21 +345,6 @@
               </div>
               <h4 class="stat-value">&#8358;{{ number_format($staffStats['stateDebt'], 2) }}</h4>
               <small class="stat-label">Debt ({{ $user->state ?? 'State' }})</small>
-            </a>
-
-            <a href="{{ route('deliveries.index') }}" class="stat-card">
-              <div class="stat-top">
-                <span class="mini-icon"><i class="bi bi-truck"></i></span>
-              </div>
-              <h4 class="stat-value">{{ $staffStats['myDeliveries'] }}</h4>
-              <small class="stat-label">My Deliveries
-                @if($staffStats['myPendingDeliveries'] > 0)
-                  &nbsp;<span class="badge-warn">{{ $staffStats['myPendingDeliveries'] }} pending</span>
-                @endif
-                @if($staffStats['myActiveDeliveries'] > 0)
-                  &nbsp;<span class="badge-info">{{ $staffStats['myActiveDeliveries'] }} active</span>
-                @endif
-              </small>
             </a>
           </section>
 
@@ -366,15 +366,15 @@
               </small>
             </a>
 
-            <a href="{{ route('orders.index') }}" class="stat-card success">
+            <!-- <a href="{{ route('orders.index') }}" class="stat-card success">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-bag-check-fill"></i></span>
               </div>
               <h4 class="stat-value">{{ $customerStats['approvedOrders'] }}</h4>
               <small class="stat-label">Approved Orders</small>
-            </a>
+            </a> -->
 
-            <a href="{{ route('payments.index') }}" class="stat-card info">
+            <!-- <a href="{{ route('payments.index') }}" class="stat-card info">
               <div class="stat-top">
                 <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
               </div>
@@ -384,7 +384,7 @@
                   &nbsp;<span class="badge-warn">{{ $customerStats['pendingPayments'] }} pending</span>
                 @endif
               </small>
-            </a>
+            </a> -->
 
             <a href="{{ route('deliveries.index') }}" class="stat-card">
               <div class="stat-top">
@@ -451,10 +451,10 @@
               <div class="stat-top"><span class="mini-icon"><i class="bi bi-cash"></i></span></div>
               <h4 class="stat-value" style="font-size:1.1rem;">Payments</h4>
             </a>
-            <a href="{{ route('deliveries.index') }}" class="stat-card stat-card-link">
+            <!-- <a href="{{ route('deliveries.index') }}" class="stat-card stat-card-link">
               <div class="stat-top"><span class="mini-icon"><i class="bi bi-truck"></i></span></div>
               <h4 class="stat-value" style="font-size:1.1rem;">Deliveries</h4>
-            </a>
+            </a> -->
           </section>
         @endif
 

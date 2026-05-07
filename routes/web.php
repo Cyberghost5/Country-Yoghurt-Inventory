@@ -69,14 +69,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
     Route::get('/deliveries/create', [DeliveryController::class, 'create'])->name('deliveries.create');
     Route::post('/deliveries', [DeliveryController::class, 'store'])->name('deliveries.store');
+    Route::get('/deliveries/{delivery}/edit', [DeliveryController::class, 'edit'])->name('deliveries.edit');
+    Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update'])->name('deliveries.update');
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
-    Route::post('/deliveries/{delivery}/approve', [DeliveryController::class, 'approve'])->name('deliveries.approve');
-    Route::post('/deliveries/{delivery}/reject', [DeliveryController::class, 'reject'])->name('deliveries.reject');
-    Route::post('/deliveries/{delivery}/deliver', [DeliveryController::class, 'markDelivered'])->name('deliveries.deliver');
+    Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatch'])->name('deliveries.dispatch');
+    Route::post('/deliveries/{delivery}/complete', [DeliveryController::class, 'markCompleted'])->name('deliveries.complete');
 
     /* ── Payments ── */
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/create', [PaymentController::class, 'create'])->name('payments.create');
+    Route::get('/delivery-allocations/{allocation}/pay', [PaymentController::class, 'deliveryPay'])->name('deliveries.allocation.pay');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');
@@ -103,4 +105,5 @@ Route::middleware('auth')->group(function () {
     /* ── AJAX helpers ── */
     Route::get('/ajax/customers', [UserManagementController::class, 'ajaxCustomers'])->name('ajax.customers');
     Route::get('/ajax/customer-orders', [OrderController::class, 'ajaxCustomerOrders'])->name('ajax.customerOrders');
+    Route::get('/ajax/customer-delivery-allocations', [DeliveryController::class, 'ajaxCustomerAllocations'])->name('ajax.customerAllocations');
 });

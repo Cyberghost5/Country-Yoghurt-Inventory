@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>New Delivery Run - Country Yoghurt</title>
+    <title>Edit Delivery {{ $delivery->delivery_number }} - Country Yoghurt</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -34,11 +34,11 @@
       <main class="main-content">
         <header class="topbar">
           <div class="title-block">
-            <h2>New Delivery Run</h2>
-            <p>Schedule a delivery and allocate products to multiple customers.</p>
+            <h2>Edit {{ $delivery->delivery_number }}</h2>
+            <p>Update the delivery details. Only pending deliveries can be edited.</p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('deliveries.index') }}" class="ghost-btn"><i class="bi bi-arrow-left"></i> Back</a>
+            <a href="{{ route('deliveries.show', $delivery) }}" class="ghost-btn"><i class="bi bi-arrow-left"></i> Back</a>
           </div>
         </header>
 
@@ -49,20 +49,24 @@
             </ul>
           </div>
         @endif
+        @if (session('error'))
+          <div class="lp-error" style="margin-bottom:14px;"><i class="bi bi-exclamation-circle"></i> {{ session('error') }}</div>
+        @endif
 
-        <form method="POST" action="{{ route('deliveries.store') }}" id="deliveryForm">
+        <form method="POST" action="{{ route('deliveries.update', $delivery) }}" id="deliveryForm">
           @csrf
+          @method('PUT')
 
           {{-- Top-level fields --}}
           <!-- <section class="card" style="padding:20px; margin-bottom:20px;">
             <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
-                <label class="form-label">Scheduled Date <span style="color:#aaa;">(optional)</span></label>
-                <input type="date" name="scheduled_at" class="form-input" value="{{ old('scheduled_at') }}" />
+                <label class="form-label">Date Created</label>
+                <input type="date" name="scheduled_at" class="form-input" value="{{ old('scheduled_at', $delivery->scheduled_at?->format('Y-m-d')) }}" />
               </div>
               <div class="form-group">
                 <label class="form-label">Notes <span style="color:#aaa;">(optional)</span></label>
-                <input type="text" name="notes" class="form-input" placeholder="Any delivery notes&hellip;" value="{{ old('notes') }}" />
+                <input type="text" name="notes" class="form-input" placeholder="Any delivery notes…" value="{{ old('notes', $delivery->notes) }}" />
               </div>
             </div>
           </section> -->
@@ -80,7 +84,7 @@
               <i class="bi bi-plus-circle"></i> Add Customer
             </button>
             <button type="submit" class="primary-btn">
-              <i class="bi bi-send"></i> Submit Delivery Run
+              <i class="bi bi-save"></i> Save Changes
             </button>
           </div>
         </form>
@@ -91,6 +95,17 @@
     @php
       $customersJson = $customers->map(function ($c) {
           return ['id' => $c->id, 'name' => $c->name, 'shop' => $c->shop_name ?? '', 'state' => $c->state ?? ''];
+      })->values();
+
+      $existingJson = $delivery->allocations->map(function ($a) {
+          return [
+              'customer_id'     => $a->customer_id,
+              'customer_label'  => ($a->customer->name ?? '') . ($a->customer->shop_name ? ' (' . $a->customer->shop_name . ')' : '') . ($a->customer->state ? ' - ' . $a->customer->state : ''),
+              'allocation_date' => $a->allocation_date?->format('Y-m-d') ?? '',
+              'items'           => $a->items->map(function ($i) {
+                  return ['product_name' => $i->product_name, 'unit_price' => $i->unit_price, 'quantity' => $i->quantity];
+              })->values(),
+          ];
       })->values();
     @endphp
 
@@ -110,6 +125,9 @@
       /* Customer data */
       var CUSTOMERS = @json($customersJson);
 
+      /* Existing allocations pre-fill */
+      var EXISTING = @json($existingJson);
+
       var customerIndex = 0;
       var usedIds = new Set();
 
@@ -125,25 +143,34 @@
         '</div>';
       }
 
-      function buildItemRow(ci, ii) {
+      function buildItemRow(ci, ii, prefill) {
+        prefill = prefill || {};
         return '<tr data-item="' + ii + '">' +
-          '<td><input type="text" name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input" placeholder="e.g. Yoghurt 500ml" required /></td>' +
-          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" required /></td>' +
-          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="1" required /></td>' +
-          '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" /></td>' +
+          '<td><input type="text" name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input" placeholder="e.g. Yoghurt 500ml" required value="' + esc(prefill.product_name || '') + '" /></td>' +
+          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" required value="' + (prefill.unit_price || '') + '" /></td>' +
+          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="1" required value="' + (prefill.quantity || '') + '" /></td>' +
+          '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" value="' + (prefill.unit_price && prefill.quantity ? (parseFloat(prefill.unit_price) * parseInt(prefill.quantity)).toFixed(2) : '') + '" /></td>' +
           '<td><button type="button" class="remove-btn remove-item-btn" title="Remove row"><i class="bi bi-trash3"></i></button></td>' +
           '</tr>';
+      }
+
+      function esc(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       }
 
       function addCustomer(prefill) {
         prefill = prefill || {};
         var ci = customerIndex++;
-        var ii = 0;
+        var items = prefill.items && prefill.items.length ? prefill.items : [{}];
 
         var section = document.createElement('div');
         section.className = 'dlv-customer-section';
         section.dataset.customer = ci;
-        section.dataset.selectedId = '';
+        section.dataset.selectedId = prefill.customer_id ? String(prefill.customer_id) : '';
+
+        var itemsHtml = '';
+        items.forEach(function(item, idx) { itemsHtml += buildItemRow(ci, idx, item); });
+
         section.innerHTML =
           '<div class="dlv-customer-header">' +
             '<span class="dlv-customer-title">Customer ' + (ci + 1) + '</span>' +
@@ -152,19 +179,31 @@
           buildSearchableCustomer(ci) +
           '<div class="form-group" style="margin-bottom:10px;">' +
             '<label class="form-label" style="font-size:0.82rem;">Allocation Date <span style="color:#aaa;">(optional — defaults to scheduled date)</span></label>' +
-            '<input type="date" name="customers[' + ci + '][allocation_date]" class="form-input" value="' + (prefill.allocation_date || '') + '" />' +
+            '<input type="date" name="customers[' + ci + '][allocation_date]" class="form-input" value="' + esc(prefill.allocation_date || '') + '" />' +
           '</div>' +
           '<table class="dlv-items-table" style="margin-top:14px;">' +
             '<thead><tr><th>Product Name</th><th>Unit Price (&#x20A6;)</th><th>Qty</th><th>Subtotal (&#x20A6;)</th><th></th></tr></thead>' +
-            '<tbody class="items-body">' + buildItemRow(ci, ii) + '</tbody>' +
+            '<tbody class="items-body">' + itemsHtml + '</tbody>' +
           '</table>' +
           '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-            '<button type="button" class="add-item-link add-item-btn" data-ci="' + ci + '" data-ii="' + (ii + 1) + '"><i class="bi bi-plus"></i> Add row</button>' +
+            '<button type="button" class="add-item-link add-item-btn" data-ci="' + ci + '" data-ii="' + items.length + '"><i class="bi bi-plus"></i> Add row</button>' +
             '<div class="dlv-customer-total">Customer Total: <span class="customer-total-value">\u20A60.00</span></div>' +
           '</div>';
+
         document.getElementById('customersWrapper').appendChild(section);
-        attachSectionEvents(section, ci);
+
+        /* Pre-fill search input if editing existing */
+        if (prefill.customer_id) {
+          usedIds.add(parseInt(prefill.customer_id));
+          var searchInput = section.querySelector('.cust-search-input');
+          var hiddenInput = section.querySelector('.cust-id-hidden');
+          searchInput.value = prefill.customer_label || '';
+          hiddenInput.value = prefill.customer_id;
+        }
+
+        attachSectionEvents(section, ci, items.length);
         attachSearchable(section, ci);
+        recalcCustomer(section);
         recalcGrand();
       }
 
@@ -194,10 +233,8 @@
                 var id = parseInt(opt.dataset.id);
                 var c  = CUSTOMERS.find(function(x) { return x.id === id; });
                 if (!c) return;
-                // Free the previously selected ID
                 var prev = parseInt(section.dataset.selectedId) || 0;
                 if (prev && prev !== id) usedIds.delete(prev);
-                // Reserve new ID
                 usedIds.add(id);
                 section.dataset.selectedId = id;
                 hidden.value = id;
@@ -213,13 +250,11 @@
         input.addEventListener('input', function() { renderDropdown(input.value); hidden.value = ''; });
         input.addEventListener('blur', function() {
           setTimeout(function() { dropdown.style.display = 'none'; }, 150);
-          // If no valid selection, clear input
           if (!hidden.value) input.value = '';
         });
       }
 
-      function attachSectionEvents(section, ci) {
-        /* Remove customer */
+      function attachSectionEvents(section, ci, nextIi) {
         section.querySelector('.remove-customer-btn').addEventListener('click', function() {
           var prev = parseInt(section.dataset.selectedId) || 0;
           if (prev) usedIds.delete(prev);
@@ -227,7 +262,6 @@
           recalcGrand();
         });
 
-        /* Add item row */
         var addBtn = section.querySelector('.add-item-btn');
         addBtn.addEventListener('click', function() {
           var ii = parseInt(addBtn.dataset.ii);
@@ -238,12 +272,11 @@
           recalcGrand();
         });
 
-        /* Remove item row (delegated) */
         section.querySelector('.items-body').addEventListener('click', function(e) {
           var btn = e.target.closest('.remove-item-btn');
           if (!btn) return;
           var rows = section.querySelectorAll('.items-body tr');
-          if (rows.length <= 1) return; // keep at least 1
+          if (rows.length <= 1) return;
           btn.closest('tr').remove();
           recalcCustomer(section);
           recalcGrand();
@@ -289,8 +322,11 @@
 
       document.getElementById('addCustomerBtn').addEventListener('click', function() { addCustomer(); });
 
-      /* Start with one customer */
-      addCustomer();
+      /* Pre-fill existing allocations */
+      EXISTING.forEach(function(alloc) { addCustomer(alloc); });
+
+      /* If no existing, start with one blank */
+      if (!EXISTING.length) addCustomer();
     })();
     </script>
   </body>

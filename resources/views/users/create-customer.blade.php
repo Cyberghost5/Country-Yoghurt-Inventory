@@ -104,9 +104,6 @@
 
             <div class="form-actions-row">
               <button type="submit" class="primary-btn">Create Customer</button>
-              @if($user->role === 'admin')
-                <a href="{{ route('users.create.staff') }}" class="ghost-btn top-action-link">Go To Add Staff</a>
-              @endif
             </div>
           </form>
         </section>

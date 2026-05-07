@@ -60,42 +60,44 @@ class ReportController extends Controller
             ->get();
 
         // ── Debt ────────────────────────────────────────────────────
-        $debtQ = DB::table('orders')
-            ->whereIn('orders.status', ['approved', 'delivered'])
+        $debtQ = DB::table('delivery_allocations')
+            ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+            ->whereIn('deliveries.status', ['dispatched', 'completed'])
             ->leftJoinSub(
                 DB::table('payments')
                     ->where('status', 'approved')
-                    ->select('order_id', DB::raw('SUM(amount) as paid'))
-                    ->groupBy('order_id'),
-                'ps', 'ps.order_id', '=', 'orders.id'
+                    ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                    ->groupBy('delivery_allocation_id'),
+                'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
             )
-            ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
-            ->selectRaw('COALESCE(SUM(orders.total_amount - COALESCE(ps.paid, 0)), 0) as debt');
-        if ($dateStart) $debtQ->where('orders.created_at', '>=', $dateStart);
-        if ($dateEnd)   $debtQ->where('orders.created_at', '<=', $dateEnd);
+            ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
+            ->selectRaw('COALESCE(SUM(delivery_allocations.total_amount - COALESCE(ps.paid, 0)), 0) as debt');
+        if ($dateStart) $debtQ->where('deliveries.created_at', '>=', $dateStart);
+        if ($dateEnd)   $debtQ->where('deliveries.created_at', '<=', $dateEnd);
         $totalDebt = (float) $debtQ->value('debt');
 
-        // Orders with outstanding debt (date-filtered)
-        $debtOrdersQ = DB::table('orders')
-            ->join('users', 'users.id', '=', 'orders.user_id')
-            ->whereIn('orders.status', ['approved', 'delivered'])
+        // Delivery allocations with outstanding debt (date-filtered)
+        $debtOrdersQ = DB::table('delivery_allocations')
+            ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+            ->join('users', 'users.id', '=', 'delivery_allocations.customer_id')
+            ->whereIn('deliveries.status', ['dispatched', 'completed'])
             ->leftJoinSub(
                 DB::table('payments')
                     ->where('status', 'approved')
-                    ->select('order_id', DB::raw('SUM(amount) as paid'))
-                    ->groupBy('order_id'),
-                'ps', 'ps.order_id', '=', 'orders.id'
+                    ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                    ->groupBy('delivery_allocation_id'),
+                'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
             )
-            ->whereRaw('orders.total_amount > COALESCE(ps.paid, 0)')
+            ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
             ->select(
-                'orders.id',
-                'orders.order_number',
+                'deliveries.id as delivery_id',
+                'deliveries.delivery_number',
                 'users.name as customer_name',
                 'users.state',
-                'orders.total_amount',
+                'delivery_allocations.total_amount',
                 DB::raw('COALESCE(ps.paid, 0) as paid'),
-                DB::raw('orders.total_amount - COALESCE(ps.paid, 0) as remaining'),
-                'orders.created_at'
+                DB::raw('delivery_allocations.total_amount - COALESCE(ps.paid, 0) as remaining'),
+                'deliveries.created_at'
             )
             ->orderByDesc('remaining');
         if ($dateStart) $debtOrdersQ->where('orders.created_at', '>=', $dateStart);
@@ -103,10 +105,10 @@ class ReportController extends Controller
         $debtOrders = $debtOrdersQ->limit(20)->get();
 
         // ── Deliveries ──────────────────────────────────────────────
-        $deliveriesTotal     = $dr(Delivery::query())->count();
-        $deliveriesPending   = $dr(Delivery::query())->where('status', 'pending')->count();
-        $deliveriesApproved  = $dr(Delivery::query())->where('status', 'approved')->count();
-        $deliveriesDelivered = $dr(Delivery::query())->where('status', 'delivered')->count();
+        $deliveriesTotal      = $dr(Delivery::query())->count();
+        $deliveriesPending    = $dr(Delivery::query())->where('status', 'pending')->count();
+        $deliveriesDispatched = $dr(Delivery::query())->where('status', 'dispatched')->count();
+        $deliveriesDelivered  = $dr(Delivery::query())->where('status', 'completed')->count();
 
         // ── Top Products ────────────────────────────────────────────
         $topProductsQ = DB::table('order_items')
@@ -163,7 +165,7 @@ class ReportController extends Controller
                 'users.name as staff_name',
                 'users.state',
                 DB::raw('COUNT(deliveries.id) as total_deliveries'),
-                DB::raw('SUM(CASE WHEN deliveries.status = "delivered" THEN 1 ELSE 0 END) as completed'),
+                DB::raw('SUM(CASE WHEN deliveries.status = "completed" THEN 1 ELSE 0 END) as completed'),
                 DB::raw('SUM(CASE WHEN deliveries.status = "pending" THEN 1 ELSE 0 END) as pending')
             )
             ->groupBy('users.id', 'users.name', 'users.state')

@@ -292,16 +292,16 @@
           {{-- Debt overview ──────────────────────────── --}}
           <div class="rpt-card">
             <div class="rpt-card-header" style="color: #c0392b;">
-              <i class="bi bi-exclamation-circle"></i> Outstanding Debt (Top 20 Orders)
+              <i class="bi bi-exclamation-circle"></i> Outstanding Delivery Debt (Top 20)
             </div>
             <div class="rpt-card-body" style="padding: 0;">
               @if ($debtOrders->isEmpty())
-                <p class="rpt-empty" style="padding: 18px;">No outstanding debt in this period. 🎉</p>
+                <p class="rpt-empty" style="padding: 18px;">No outstanding delivery debt in this period. 🎉</p>
               @else
                 <table class="rpt-table">
                   <thead>
                     <tr>
-                      <th>Order</th>
+                      <th>Delivery</th>
                       <th>Customer</th>
                       <th class="ta-right">Total (₦)</th>
                       <th class="ta-right">Paid (₦)</th>
@@ -312,8 +312,8 @@
                     @foreach ($debtOrders as $row)
                       <tr>
                         <td>
-                          <a href="{{ route('orders.show', $row->id) }}" class="rpt-link">
-                            {{ $row->order_number }}
+                          <a href="{{ route('deliveries.show', $row->delivery_id) }}" class="rpt-link">
+                            {{ $row->delivery_number }}
                           </a>
                         </td>
                         <td>
@@ -356,7 +356,7 @@
               @php
                 $dlvRows = [
                   ['label' => 'Pending Approval',  'count' => $deliveriesPending,   'css' => 'pending'],
-                  ['label' => 'Out for Delivery',  'count' => $deliveriesApproved,  'css' => 'approved'],
+                  ['label' => 'Dispatched',  'count' => $deliveriesDispatched,  'css' => 'approved'],
                   ['label' => 'Delivered',         'count' => $deliveriesDelivered, 'css' => 'delivered'],
                 ];
               @endphp

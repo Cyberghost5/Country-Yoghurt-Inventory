@@ -28,9 +28,9 @@
           </div>
           @if (in_array($user->role, ['staff', 'customer'], true))
             <div class="top-actions">
-              <a href="{{ route('payments.create') }}" class="primary-btn">
+              <button type="button" class="primary-btn" onclick="openPayTypeModal()">
                 <i class="bi bi-plus-lg"></i> New Payment
-              </a>
+              </button>
             </div>
           @endif
         </header>
@@ -76,7 +76,7 @@
                   @if ($user->role === 'admin')
                     <th>Submitted By</th>
                   @endif
-                  <th>Order</th>
+                  <th>Reference</th>
                   <th>Amount (₦)</th>
                   <th>Method</th>
                   <th>Date</th>
@@ -99,8 +99,12 @@
                         <a href="{{ route('orders.show', $payment->order_id) }}" class="pay-order-link">
                           {{ $payment->order->order_number }}
                         </a>
+                      @elseif ($payment->deliveryAllocation?->delivery)
+                        <a href="{{ route('deliveries.show', $payment->deliveryAllocation->delivery_id) }}" class="pay-order-link">
+                          {{ $payment->deliveryAllocation->delivery->delivery_number }}
+                        </a>
                       @else
-                        <span style="color:var(--text-soft); font-size:0.82rem;">- standalone -</span>
+                        <span style="color:var(--text-soft); font-size:0.82rem;">{{ $payment->reason ? Str::limit($payment->reason, 30) : '—' }}</span>
                       @endif
                     </td>
                     <td class="ord-amount">{{ number_format($payment->amount, 2) }}</td>
@@ -139,6 +143,41 @@
       </main>
     </div>
 
+    {{-- Payment type picker modal --}}
+    <div class="inv-modal-overlay" id="payTypeModal" onclick="if(event.target===this)closePayTypeModal()">
+      <div class="inv-modal" style="max-width:460px;">
+        <div class="inv-modal-head">
+          <h3><i class="bi bi-plus-circle" style="color:var(--primary);"></i> New Payment</h3>
+          <button class="inv-modal-close" onclick="closePayTypeModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="inv-modal-body" style="padding:24px;">
+          <p style="font-size:0.88rem;color:var(--text-soft);margin-bottom:20px;">What would you like to make a payment for?</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <a href="{{ route('payments.create') }}"
+               style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 16px;
+                      border:2px solid #e5e0d6;border-radius:12px;text-decoration:none;
+                      background:#fafaf8;transition:border-color .15s,background .15s;"
+               onmouseover="this.style.borderColor='var(--primary)';this.style.background='#f0f4ff';"
+               onmouseout="this.style.borderColor='#e5e0d6';this.style.background='#fafaf8';">
+              <i class="bi bi-bag-check" style="font-size:2rem;color:var(--primary);"></i>
+              <span style="font-weight:600;font-size:0.93rem;color:var(--text-main);">Order Payment</span>
+              <span style="font-size:0.78rem;color:var(--text-soft);text-align:center;">Pay against a placed order</span>
+            </a>
+            <a href="{{ route('payments.create', ['type' => 'delivery']) }}"
+               style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 16px;
+                      border:2px solid #e5e0d6;border-radius:12px;text-decoration:none;
+                      background:#fafaf8;transition:border-color .15s,background .15s;"
+               onmouseover="this.style.borderColor='#16a34a';this.style.background='#f0fff4';"
+               onmouseout="this.style.borderColor='#e5e0d6';this.style.background='#fafaf8';">
+              <i class="bi bi-truck" style="font-size:2rem;color:#16a34a;"></i>
+              <span style="font-weight:600;font-size:0.93rem;color:var(--text-main);">Delivery Payment</span>
+              <span style="font-size:0.78rem;color:var(--text-soft);text-align:center;">Pay for a delivered allocation</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       (function() {
@@ -152,6 +191,15 @@
         if (close)    close.addEventListener('click', closeSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
+
+      function openPayTypeModal() {
+        document.getElementById('payTypeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      function closePayTypeModal() {
+        document.getElementById('payTypeModal').classList.remove('active');
+        document.body.style.overflow = '';
+      }
     </script>
   </body>
 </html>

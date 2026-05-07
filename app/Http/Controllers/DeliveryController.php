@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Delivery;
-use App\Models\Order;
+use App\Models\DeliveryAllocation;
 use App\Models\User;
-use App\Notifications\DeliveryNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -15,15 +14,12 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $query = Delivery::with(['order', 'staff'])->latest();
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+
+        $query = Delivery::with(['staff', 'allocations'])->latest();
 
         if ($user->role === 'staff') {
-            $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
-                ->pluck('id');
-            $query->whereHas('order', fn ($q) => $q->whereIn('user_id', $stateCustomerIds));
-        } elseif ($user->role !== 'admin') {
-            abort(403);
+            $query->where('staff_id', $user->id);
         }
 
         if ($status = $request->input('status')) {
@@ -32,208 +28,291 @@ class DeliveryController extends Controller
 
         $deliveries = $query->paginate(20)->withQueryString();
 
-        $baseQuery = Delivery::query();
+        $base = Delivery::query();
         if ($user->role === 'staff') {
-            $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
-                ->pluck('id');
-            $baseQuery->whereHas('order', fn ($q) => $q->whereIn('user_id', $stateCustomerIds));
+            $base->where('staff_id', $user->id);
         }
 
         $counts = [
-            'all'       => (clone $baseQuery)->count(),
-            'pending'   => (clone $baseQuery)->where('status', 'pending')->count(),
-            'approved'  => (clone $baseQuery)->where('status', 'approved')->count(),
-            'delivered' => (clone $baseQuery)->where('status', 'delivered')->count(),
-            'rejected'  => (clone $baseQuery)->where('status', 'rejected')->count(),
+            'all'        => (clone $base)->count(),
+            'pending'    => (clone $base)->where('status', 'pending')->count(),
+            'dispatched' => (clone $base)->where('status', 'dispatched')->count(),
+            'completed'  => (clone $base)->where('status', 'completed')->count(),
         ];
 
         return view('deliveries.index', compact('user', 'deliveries', 'counts'));
     }
 
-    /* ── Create form (staff + admin) ── */
+    /* ── Create form ── */
     public function create(Request $request)
     {
         $user = $request->user();
         if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
-        // For staff/admin, load customers to show the customer selector
         $customers = User::where('role', 'customer')
             ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
             ->orderBy('name')
-            ->get(['id', 'name', 'shop_name', 'state', 'lga', 'address']);
+            ->get(['id', 'name', 'shop_name', 'state']);
 
-        // Load approved orders (initial set — JS will filter by selected customer)
-        $approvedOrders = Order::where('status', 'approved')
-            ->whereDoesntHave('deliveries', fn ($q) => $q->whereIn('status', ['pending', 'approved']))
-            ->when($user->role === 'staff', fn ($q) => $q->whereHas('user', fn ($u) => $u->where('state', $user->state)))
-            ->orderByDesc('created_at')
-            ->get(['id', 'order_number', 'total_amount', 'user_id']);
-
-        // Pre-selected order from query string
-        $order = null;
-        if ($orderId = $request->query('order_id')) {
-            $order = Order::with('user')->find($orderId);
-            if ($order && $order->status !== 'approved') {
-                $order = null;
-            }
-        }
-
-        return view('deliveries.create', compact('user', 'approvedOrders', 'order', 'customers'));
+        return view('deliveries.create', compact('user', 'customers'));
     }
 
-    /* ── Store (staff + admin) ── */
+    /* ── Store ── */
     public function store(Request $request)
     {
         $user = $request->user();
         if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
-        $data = $request->validate([
-            'order_id'         => 'required|integer|exists:orders,id',
-            'delivery_address' => 'required|string|max:500',
-            'scheduled_at'     => 'required|date|after_or_equal:today',
-            'notes'            => 'nullable|string|max:1000',
+        $request->validate([
+            'scheduled_at'                              => 'nullable|date',
+            'notes'                                     => 'nullable|string|max:1000',
+            'customers'                                 => 'required|array|min:1',
+            'customers.*.customer_id'                   => 'required|integer|exists:users,id',
+            'customers.*.allocation_date'               => 'nullable|date',
+            'customers.*.items'                         => 'required|array|min:1',
+            'customers.*.items.*.product_name'          => 'required|string|max:255',
+            'customers.*.items.*.unit_price'            => 'required|numeric|min:0',
+            'customers.*.items.*.quantity'              => 'required|integer|min:1',
         ]);
 
-        $order = Order::findOrFail($data['order_id']);
+        $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
 
-        if ($order->status !== 'approved') {
-            return back()->withInput()
-                ->withErrors(['order_id' => 'Only approved orders can be scheduled for delivery.']);
-        }
+        $delivery = DB::transaction(function () use ($user, $request, $scheduledAt) {
+            $delivery = Delivery::create([
+                'delivery_number' => $this->generateDeliveryNumber(),
+                'staff_id'        => $user->id,
+                'scheduled_at'    => $scheduledAt,
+                'notes'           => $request->input('notes'),
+                'status'          => 'pending',
+            ]);
 
-        // Prevent duplicate active delivery
-        $exists = $order->deliveries()
-            ->whereIn('status', ['pending', 'approved'])
-            ->exists();
+            foreach ($request->input('customers') as $cData) {
+                $customerTotal = 0;
+                $itemRecords   = [];
 
-        if ($exists) {
-            return back()->withInput()
-                ->withErrors(['order_id' => 'This order already has an active delivery scheduled.']);
-        }
+                foreach ($cData['items'] as $item) {
+                    $price    = round((float) $item['unit_price'], 2);
+                    $qty      = (int) $item['quantity'];
+                    $subtotal = round($price * $qty, 2);
+                    $customerTotal += $subtotal;
+                    $itemRecords[] = [
+                        'product_name' => trim($item['product_name']),
+                        'unit_price'   => $price,
+                        'quantity'     => $qty,
+                        'subtotal'     => $subtotal,
+                    ];
+                }
 
-        $delivery = Delivery::create([
-            'order_id'         => $order->id,
-            'staff_id'         => $user->id,
-            'delivery_address' => $data['delivery_address'],
-            'scheduled_at'     => $data['scheduled_at'] ?? null,
-            'notes'            => $data['notes'] ?? null,
-            'status'           => 'pending',
-        ]);
+                $allocation = $delivery->allocations()->create([
+                    'customer_id'     => (int) $cData['customer_id'],
+                    'total_amount'    => round($customerTotal, 2),
+                    'notes'           => $cData['notes'] ?? null,
+                    'allocation_date' => $cData['allocation_date'] ?? $scheduledAt,
+                ]);
 
-        $delivery->load('order.user', 'staff');
-        $adminUser = User::where('role', 'admin')->first();
-        if ($adminUser) {
-            $adminUser->notify(new DeliveryNotification('scheduled', $delivery));
-        }
+                $allocation->items()->createMany($itemRecords);
+            }
+
+            return $delivery;
+        });
 
         return redirect()->route('deliveries.show', $delivery)
-            ->with('status', "Delivery for {$order->order_number} scheduled. Awaiting admin approval.");
+            ->with('status', "Delivery {$delivery->delivery_number} created successfully.");
     }
 
     /* ── Show ── */
     public function show(Request $request, Delivery $delivery)
     {
         $user = $request->user();
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
 
-        if ($user->role === 'customer') {
-            abort(403);
-        }
+        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
 
-        if ($user->role === 'staff') {
-            $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
-                ->pluck('id');
-            $delivery->loadMissing('order');
-            if (!$stateCustomerIds->contains($delivery->order?->user_id)) {
-                abort(403);
-            }
-        }
-
-        $delivery->load(['order.user', 'order.items', 'staff', 'approvedBy']);
+        $delivery->load(['staff', 'allocations.customer', 'allocations.items', 'allocations.payments.user']);
 
         return view('deliveries.show', compact('user', 'delivery'));
     }
 
-    /* ── Approve (admin only) ── */
-    public function approve(Request $request, Delivery $delivery)
+    /* ── Edit form ── */
+    public function edit(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
-
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
         if ($delivery->status !== 'pending') {
             return redirect()->route('deliveries.show', $delivery)
-                ->with('error', 'Only pending deliveries can be approved.');
+                ->with('error', 'Only pending deliveries can be edited.');
         }
 
-        $delivery->update([
-            'status'      => 'approved',
-            'approved_by' => $user->id,
-            'approved_at' => now(),
-        ]);
+        $delivery->load(['allocations.customer', 'allocations.items']);
 
-        $delivery->load('order.user', 'staff');
-        $delivery->staff->notify(new DeliveryNotification('approved', $delivery));
+        $customers = User::where('role', 'customer')
+            ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+            ->orderBy('name')
+            ->get(['id', 'name', 'shop_name', 'state']);
 
-        return redirect()->route('deliveries.show', $delivery)
-            ->with('status', "Delivery approved and marked as out for delivery.");
+        return view('deliveries.edit', compact('user', 'delivery', 'customers'));
     }
 
-    /* ── Reject (admin only) ── */
-    public function reject(Request $request, Delivery $delivery)
+    /* ── Update ── */
+    public function update(Request $request, Delivery $delivery)
     {
         $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
-
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
         if ($delivery->status !== 'pending') {
             return redirect()->route('deliveries.show', $delivery)
-                ->with('error', 'Only pending deliveries can be rejected.');
+                ->with('error', 'Only pending deliveries can be edited.');
         }
 
         $request->validate([
-            'rejection_reason' => 'nullable|string|max:1000',
+            'scheduled_at'                              => 'nullable|date',
+            'notes'                                     => 'nullable|string|max:1000',
+            'customers'                                 => 'required|array|min:1',
+            'customers.*.customer_id'                   => 'required|integer|exists:users,id',
+            'customers.*.allocation_date'               => 'nullable|date',
+            'customers.*.items'                         => 'required|array|min:1',
+            'customers.*.items.*.product_name'          => 'required|string|max:255',
+            'customers.*.items.*.unit_price'            => 'required|numeric|min:0',
+            'customers.*.items.*.quantity'              => 'required|integer|min:1',
         ]);
 
-        $delivery->update([
-            'status'           => 'rejected',
-            'rejection_reason' => $request->input('rejection_reason'),
-        ]);
+        $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
 
-        $delivery->load('order.user', 'staff');
-        if ($delivery->staff) {
-            $delivery->staff->notify(new DeliveryNotification('rejected', $delivery));
-        }
-
-        return redirect()->route('deliveries.show', $delivery)
-            ->with('status', 'Delivery has been rejected.');
-    }
-
-    /* ── Mark Delivered (admin only) ── */
-    public function markDelivered(Request $request, Delivery $delivery)
-    {
-        $user = $request->user();
-        if ($user->role !== 'admin') abort(403);
-
-        if ($delivery->status !== 'approved') {
-            return redirect()->route('deliveries.show', $delivery)
-                ->with('error', 'Only approved (out for delivery) deliveries can be marked as delivered.');
-        }
-
-        DB::transaction(function () use ($delivery) {
+        DB::transaction(function () use ($delivery, $request, $scheduledAt) {
             $delivery->update([
-                'status'       => 'delivered',
-                'delivered_at' => now(),
+                'scheduled_at' => $scheduledAt,
+                'notes'        => $request->input('notes'),
             ]);
 
-            $delivery->order()->update(['status' => 'delivered']);
+            // Delete existing allocations and items (pending = no payments yet)
+            foreach ($delivery->allocations as $alloc) {
+                $alloc->items()->delete();
+            }
+            $delivery->allocations()->delete();
+
+            // Re-create allocations
+            foreach ($request->input('customers') as $cData) {
+                $customerTotal = 0;
+                $itemRecords   = [];
+
+                foreach ($cData['items'] as $item) {
+                    $price    = round((float) $item['unit_price'], 2);
+                    $qty      = (int) $item['quantity'];
+                    $subtotal = round($price * $qty, 2);
+                    $customerTotal += $subtotal;
+                    $itemRecords[] = [
+                        'product_name' => trim($item['product_name']),
+                        'unit_price'   => $price,
+                        'quantity'     => $qty,
+                        'subtotal'     => $subtotal,
+                    ];
+                }
+
+                $allocation = $delivery->allocations()->create([
+                    'customer_id'     => (int) $cData['customer_id'],
+                    'total_amount'    => round($customerTotal, 2),
+                    'notes'           => $cData['notes'] ?? null,
+                    'allocation_date' => $cData['allocation_date'] ?? $scheduledAt,
+                ]);
+
+                $allocation->items()->createMany($itemRecords);
+            }
         });
 
-        $delivery->refresh()->load('order.user', 'staff');
-        if ($delivery->order?->user) {
-            $delivery->order->user->notify(new DeliveryNotification('delivered', $delivery));
+        return redirect()->route('deliveries.show', $delivery)
+            ->with('status', "Delivery {$delivery->delivery_number} updated successfully.");
+    }
+
+    /* ── Dispatch ── */
+    public function dispatch(Request $request, Delivery $delivery)
+    {
+        $user = $request->user();
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
+
+        if ($delivery->status !== 'pending') {
+            return redirect()->route('deliveries.show', $delivery)
+                ->with('error', 'Only pending deliveries can be dispatched.');
         }
 
+        $delivery->update([
+            'status'        => 'dispatched',
+            'dispatched_at' => now(),
+        ]);
+
         return redirect()->route('deliveries.show', $delivery)
-            ->with('status', "Delivery marked as delivered. Order {$delivery->order->order_number} is now closed.");
+            ->with('status', "Delivery {$delivery->delivery_number} marked as dispatched.");
+    }
+
+    /* ── Mark Completed (admin & staff) ── */
+    public function markCompleted(Request $request, Delivery $delivery)
+    {
+        $user = $request->user();
+        if (!in_array($user->role, ['admin', 'staff'], true)) abort(403);
+
+        // Staff can only complete their own deliveries
+        if ($user->role === 'staff' && $delivery->staff_id !== $user->id) abort(403);
+
+        if ($delivery->status !== 'dispatched') {
+            return redirect()->route('deliveries.show', $delivery)
+                ->with('error', 'Only dispatched deliveries can be marked as completed.');
+        }
+
+        $delivery->update([
+            'status'       => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        return redirect()->route('deliveries.show', $delivery)
+            ->with('status', "Delivery {$delivery->delivery_number} marked as completed.");
+    }
+
+    /* ── AJAX: unpaid delivery allocations for a customer ── */
+    public function ajaxCustomerAllocations(Request $request)
+    {
+        $actor      = $request->user();
+        $customerId = $request->integer('customer_id');
+
+        $customer = User::where('role', 'customer')
+            ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
+            ->findOrFail($customerId);
+
+        $allocations = DeliveryAllocation::with(['delivery', 'payments' => fn ($q) => $q->where('status', 'approved')])
+            ->where('customer_id', $customer->id)
+            ->whereHas('delivery', fn ($q) => $q->where('status', 'dispatched'))
+            ->get();
+
+        return response()->json($allocations->map(function ($a) {
+            $remaining = $a->remainingAmount();
+            return [
+                'id'              => $a->id,
+                'delivery_number' => $a->delivery->delivery_number ?? '-',
+                'total_amount'    => number_format((float) $a->total_amount, 2, '.', ''),
+                'remaining'       => number_format($remaining, 2, '.', ''),
+                'label'           => ($a->delivery->delivery_number ?? '-') . ' — ₦' . number_format($remaining, 2) . ' remaining',
+            ];
+        })->filter(fn ($a) => (float) $a['remaining'] > 0)->values());
+    }
+
+    /* ── Private ── */
+
+    private function generateDeliveryNumber(): string
+    {
+        $yy = now()->format('y');   // e.g. "26" for 2026
+
+        $last = Delivery::where('delivery_number', 'like', '%/' . $yy)
+            ->orderByDesc('id')
+            ->value('delivery_number');
+
+        if ($last && preg_match('/DLV-(\d+)\//', $last, $m)) {
+            $next = (int) $m[1] + 1;
+        } else {
+            $next = 1;
+        }
+
+        return 'DLV-' . str_pad($next, 4, '0', STR_PAD_LEFT) . '/' . $yy;
     }
 }
+
+

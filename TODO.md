@@ -1,0 +1,4 @@
+1. Delivery should be editable new customer can be added, each customer should have their specified allocation date. Replace the Notes for this customer field with the allocation date field. Scheduling date should be the default date the form was submitted if not entered, I am seeing a - if it's not entered.
+2. The customer should be searchable and not just drop down, also if a customer has already been added, it should not be displayed in the next add customer dropdown.
+3. Change the delivery reference method to DLV-SN/YY e.g DLV-0001/26, this is the first delivery for 2026, DLV-0002/27, this is the second delivery for 2027.
+4. SMS for updated delivery and also for payment for a delivery.

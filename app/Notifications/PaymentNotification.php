@@ -48,9 +48,14 @@ class PaymentNotification extends Notification
     private function message(): string
     {
         $amount = '₦' . number_format($this->payment->amount, 2);
-        $ref    = $this->payment->order
-            ? "for order {$this->payment->order->order_number}"
-            : ($this->payment->reason ? "({$this->payment->reason})" : '');
+        $this->payment->loadMissing(['order', 'deliveryAllocation.delivery']);
+        if ($this->payment->order) {
+            $ref = "for order {$this->payment->order->order_number}";
+        } elseif ($this->payment->deliveryAllocation?->delivery) {
+            $ref = "for delivery {$this->payment->deliveryAllocation->delivery->delivery_number}";
+        } else {
+            $ref = $this->payment->reason ? "({$this->payment->reason})" : '';
+        }
 
         return match ($this->type) {
             'submitted' => "A new payment of {$amount} {$ref} has been submitted and awaits review.",

@@ -23,7 +23,7 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Debts</h2>
-            <p>Approved &amp; delivered orders with outstanding balances.</p>
+            <p>Approved &amp; delivered deliveries with outstanding balances.</p>
           </div>
         </header>
 
@@ -41,7 +41,7 @@
               <span class="mini-icon" style="background:#fde8e8;color:#c0392b;"><i class="bi bi-receipt"></i></span>
             </div>
             <h4 class="stat-value">{{ $debtRows->count() }}</h4>
-            <small class="stat-label">Unpaid Orders</small>
+            <small class="stat-label">Unpaid Deliveries</small>
           </div>
           <div class="stat-card" style="cursor:default;">
             <div class="stat-top">
@@ -56,31 +56,31 @@
           <div class="card-head">
             <div>
               <h3>Outstanding Payments</h3>
-              <span>{{ $debtRows->count() }} {{ Str::plural('order', $debtRows->count()) }} with unpaid balance</span>
+              <span>{{ $debtRows->count() }} {{ Str::plural('delivery', $debtRows->count()) }} with unpaid balance</span>
             </div>
           </div>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Order #</th>
-                  <th>Customer</th>
+                  <th>Delivery #</th>
+                  <!-- <th>Customer</th> -->
                   <th>Shop</th>
                   <th>State</th>
                   <th>Phone</th>
-                  <th>Order Total</th>
+                  <th>Delivery Total</th>
                   <th>Paid</th>
                   <th>Outstanding</th>
                   <th>Status</th>
-                  <th>Order Date</th>
+                  <th>Date</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 @forelse($debtRows as $row)
                   <tr>
-                    <td><strong>{{ $row->order_number }}</strong></td>
-                    <td>{{ $row->customer_name }}</td>
+                    <td><strong>{{ $row->delivery_number }}</strong></td>
+                    <!-- <td>{{ $row->customer_name }}</td> -->
                     <td>{{ $row->shop_name ?: '-' }}</td>
                     <td>{{ $row->state ?: '-' }}</td>
                     <td>{{ $row->phone ?: '-' }}</td>
@@ -90,16 +90,16 @@
                       <strong style="color: #c0392b;">₦{{ number_format($row->outstanding, 2) }}</strong>
                     </td>
                     <td>
-                      @if($row->order_status === 'delivered')
-                        <span class="badge-pill" style="background:#e8f5e9;color:#2d6a4f;padding:4px 8px;border-radius:12px;">Delivered</span>
+                      @if($row->delivery_status === 'completed')
+                        <span class="badge-pill" style="background:#e8f5e9;color:#2d6a4f;padding:4px 8px;border-radius:12px;">Completed</span>
                       @else
-                        <span class="badge-pill" style="background:#fff3cd;color:#b45309;padding:4px 8px;border-radius:12px;">Approved</span>
+                        <span class="badge-pill" style="background:#fff3cd;color:#b45309;padding:4px 8px;border-radius:12px;">Dispatched</span>
                       @endif
                     </td>
-                    <td>{{ \Carbon\Carbon::parse($row->order_date)->format('d M Y') }}</td>
+                    <td>{{ \Carbon\Carbon::parse($row->delivery_date)->format('d M Y') }}</td>
                     <td class="user-actions">
-                      <a href="{{ route('orders.show', $row->order_id) }}" class="ua-btn ua-edit">
-                        <i class="bi bi-eye"></i> View Order
+                      <a href="{{ route('deliveries.show', $row->delivery_id) }}" class="ua-btn ua-edit">
+                        <i class="bi bi-eye"></i> View Delivery
                       </a>
                       <a href="{{ route('customers.show', $row->customer_id) }}" class="ua-btn" style="background:#f0f4ff;color:#2563eb;">
                         <i class="bi bi-person"></i> Customer
@@ -109,7 +109,7 @@
                 @empty
                   <tr><td colspan="11" class="table-empty" style="text-align:center;padding:32px;">
                     <i class="bi bi-check-circle" style="font-size:1.6rem;color:#2d6a4f;display:block;margin-bottom:8px;"></i>
-                    No outstanding debts. All approved orders are fully paid.
+                    No outstanding delivery debts.
                   </td></tr>
                 @endforelse
               </tbody>

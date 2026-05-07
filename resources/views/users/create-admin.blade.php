@@ -94,7 +94,6 @@
 
             <div class="form-actions-row">
               <button type="submit" class="primary-btn">Create Admin</button>
-              <a href="{{ route('users.create.customer') }}" class="ghost-btn top-action-link">Go To Add Staff</a></a>
             </div>
           </form>
         </section>

@@ -46,11 +46,6 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function deliveries(): HasMany
-    {
-        return $this->hasMany(Delivery::class);
-    }
-
     /* ── Computed ── */
 
     public function getStatusLabelAttribute(): string

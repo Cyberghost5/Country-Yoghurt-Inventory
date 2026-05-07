@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeliveryAllocation;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
@@ -17,7 +18,7 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $query = Payment::with(['order', 'user'])->latest();
+        $query = Payment::with(['order', 'user', 'deliveryAllocation.delivery'])->latest();
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
@@ -55,6 +56,23 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
+        // ?type=delivery — route staff/admin to deliveries, customers to a picker
+        if ($request->input('type') === 'delivery') {
+            if ($user->role === 'customer') {
+                $payableAllocations = DeliveryAllocation::with('delivery.staff', 'items', 'payments')
+                    ->where('customer_id', $user->id)
+                    ->whereHas('delivery', fn ($q) => $q->whereIn('status', ['dispatched', 'completed']))
+                    ->get()
+                    ->filter(fn ($a) => $a->remainingAmount() > 0)
+                    ->values();
+
+                return view('payments.create-delivery', compact('user', 'payableAllocations'));
+            }
+            // staff / admin: go to deliveries list where they can manage payments
+            return redirect()->route('deliveries.index')
+                ->with('status', 'Select a delivery and choose the customer allocation to record a payment.');
+        }
+
         // Optionally pre-link to a specific order
         $order = null;
         if ($orderId = $request->input('order_id')) {
@@ -73,6 +91,12 @@ class PaymentController extends Controller
                         ->with('error', 'This order is already fully paid.');
                 }
             }
+        }
+
+        // Optionally pre-link to a delivery allocation
+        $allocation = null;
+        if ($allocId = $request->input('allocation_id')) {
+            $allocation = DeliveryAllocation::with('delivery', 'customer')->find($allocId);
         }
 
         // For staff/admin: load customers so they can select on whose behalf this payment is
@@ -94,7 +118,37 @@ class PaymentController extends Controller
                 ->get(['id', 'order_number', 'total_amount', 'status']);
         }
 
-        return view('payments.create', compact('user', 'order', 'payableOrders', 'customers'));
+        // Delivery allocations the current customer can pay
+        $payableAllocations = collect();
+        if ($user->role === 'customer') {
+            $payableAllocations = DeliveryAllocation::with('delivery')
+                ->where('customer_id', $user->id)
+                ->whereHas('delivery', fn ($q) => $q->where('status', 'dispatched'))
+                ->get()
+                ->filter(fn ($a) => $a->remainingAmount() > 0);
+        }
+
+        return view('payments.create', compact('user', 'order', 'allocation', 'payableOrders', 'payableAllocations', 'customers'));
+    }
+
+    /* ── Delivery Allocation Pay form ── */
+    public function deliveryPay(Request $request, DeliveryAllocation $allocation)
+    {
+        $user = $request->user();
+
+        // Only the customer who owns it, or admin/staff, may access
+        if ($user->role === 'customer' && $allocation->customer_id !== $user->id) {
+            abort(403);
+        }
+
+        $allocation->load(['delivery.staff', 'customer', 'items', 'payments']);
+
+        if ($allocation->isFullyPaid()) {
+            return redirect()->route('deliveries.show', $allocation->delivery_id)
+                ->with('error', 'This delivery allocation is already fully paid.');
+        }
+
+        return view('payments.delivery-pay', compact('user', 'allocation'));
     }
 
     /* ── Store ── */
@@ -103,53 +157,61 @@ class PaymentController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'order_id'       => 'nullable|integer|exists:orders,id',
-            'customer_id'    => 'nullable|integer|exists:users,id',
-            'reason'         => 'required_without:order_id|nullable|string|max:1000',
-            'amount'         => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:bank_transfer,cash,pos,mobile_money',
-            'reference'      => 'nullable|string|max:100',
-            'proof'          => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'notes'          => 'nullable|string|max:1000',
+            'payment_type'           => 'required|in:order,delivery,other',
+            'order_id'               => 'nullable|integer|exists:orders,id',
+            'delivery_allocation_id' => 'nullable|integer|exists:delivery_allocations,id',
+            'customer_id'            => 'nullable|integer|exists:users,id',
+            'reason'                 => 'nullable|string|max:1000',
+            'amount'                 => 'required|numeric|min:0.01',
+            'payment_method'         => 'required|in:bank_transfer,cash,pos,mobile_money',
+            'reference'              => 'nullable|string|max:100',
+            'proof'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'notes'                  => 'nullable|string|max:1000',
         ]);
 
-        $order = null;
-        if ($orderId = $request->input('order_id')) {
-            $order = Order::findOrFail($orderId);
+        $type       = $request->input('payment_type');
+        $order      = null;
+        $allocation = null;
 
+        if ($type === 'order' && $request->filled('order_id')) {
+            $order = Order::findOrFail($request->input('order_id'));
             if (!in_array($user->role, ['admin', 'staff'], true) && $order->user_id !== $user->id) abort(403);
-
             if (!in_array($order->status, ['approved', 'delivered'])) {
-                return back()->withInput()
-                    ->withErrors(['order_id' => 'That order cannot receive a payment in its current status.']);
+                return back()->withInput()->withErrors(['order_id' => 'That order cannot receive a payment in its current status.']);
             }
-
             if ($order->isFullyPaid()) {
-                return back()->withInput()
-                    ->withErrors(['order_id' => 'This order is already fully paid.']);
+                return back()->withInput()->withErrors(['order_id' => 'This order is already fully paid.']);
             }
+            $remaining = $order->remainingAmount();
+            if (round((float) $request->input('amount'), 2) > $remaining) {
+                return back()->withInput()->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . ' on this order.']);
+            }
+        } elseif ($type === 'delivery' && $request->filled('delivery_allocation_id')) {
+            $allocation = DeliveryAllocation::with('delivery')->findOrFail($request->input('delivery_allocation_id'));
+            if (!in_array($user->role, ['admin', 'staff'], true) && $allocation->customer_id !== $user->id) abort(403);
+            if ($allocation->delivery->status !== 'dispatched') {
+                return back()->withInput()->withErrors(['delivery_allocation_id' => 'That delivery is not dispatched yet.']);
+            }
+            $remaining = $allocation->remainingAmount();
+            if (round((float) $request->input('amount'), 2) > $remaining) {
+                return back()->withInput()->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . ' on this delivery.']);
+            }
+        } elseif ($type === 'other' && !$request->filled('reason')) {
+            return back()->withInput()->withErrors(['reason' => 'A reason is required for a standalone payment.']);
         }
 
-        // Determine the payment owner (customer on whose behalf staff/admin is acting)
+        // Determine the payment owner
         $paymentOwnerId = $user->id;
         if (in_array($user->role, ['admin', 'staff'], true)) {
             if ($order) {
                 $paymentOwnerId = $order->user_id;
+            } elseif ($allocation) {
+                $paymentOwnerId = $allocation->customer_id;
             } elseif ($request->filled('customer_id')) {
                 $customer = User::where('role', 'customer')
                     ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
                     ->findOrFail($request->integer('customer_id'));
                 $paymentOwnerId = $customer->id;
-            }
-        }
-
-        // Validate payment amount does not exceed remaining balance
-        if ($order) {
-            $remaining = $order->remainingAmount();
-            $submitted = round((float) $request->input('amount'), 2);
-            if ($submitted > $remaining) {
-                return back()->withInput()
-                    ->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . ' on this order.']);
             }
         }
 
@@ -159,16 +221,17 @@ class PaymentController extends Controller
         }
 
         $payment = Payment::create([
-            'order_id'       => $order?->id,
-            'user_id'        => $paymentOwnerId,
-            'payment_number' => $this->generatePaymentNumber(),
-            'amount'         => round((float) $request->input('amount'), 2),
-            'payment_method' => $request->input('payment_method'),
-            'reference'      => $request->input('reference'),
-            'proof_path'     => $proofPath,
-            'notes'          => $request->input('notes'),
-            'reason'         => $request->input('reason'),
-            'status'         => 'pending',
+            'order_id'               => $order?->id,
+            'delivery_allocation_id' => $allocation?->id,
+            'user_id'                => $paymentOwnerId,
+            'payment_number'         => $this->generatePaymentNumber(),
+            'amount'                 => round((float) $request->input('amount'), 2),
+            'payment_method'         => $request->input('payment_method'),
+            'reference'              => $request->input('reference'),
+            'proof_path'             => $proofPath,
+            'notes'                  => $request->input('notes'),
+            'reason'                 => $request->input('reason'),
+            'status'                 => 'pending',
         ]);
 
         $adminUser = User::where('role', 'admin')->first();
@@ -206,9 +269,11 @@ class PaymentController extends Controller
             }
         }
 
-        $payment->load(['order', 'user', 'reviewer']);
+        $payment->load(['order', 'user', 'reviewer', 'deliveryAllocation.delivery', 'deliveryAllocation.customer', 'deliveryAllocation.items', 'deliveryAllocation.payments']);
 
-        return view('payments.show', compact('user', 'payment'));
+        $view = $payment->delivery_allocation_id ? 'payments.show-delivery' : 'payments.show';
+
+        return view($view, compact('user', 'payment'));
     }
 
     /* ── Approve (admin only) ── */
@@ -233,10 +298,26 @@ class PaymentController extends Controller
         // SMS to customer
         $customer = $payment->user;
         if ($customer && $customer->phone) {
-            $order   = $payment->order;
+            $payment->loadMissing(['order', 'deliveryAllocation.delivery']);
+            if ($payment->order) {
+                $ref       = "for order {$payment->order->order_number}";
+                $remaining = $payment->order->remainingAmount();
+                $balancePart = $remaining > 0
+                    ? " Outstanding balance: NGN " . number_format($remaining, 2) . "."
+                    : " Order is now fully paid.";
+            } elseif ($payment->deliveryAllocation?->delivery) {
+                $ref       = "for delivery {$payment->deliveryAllocation->delivery->delivery_number}";
+                $remaining = $payment->deliveryAllocation->remainingAmount();
+                $balancePart = $remaining > 0
+                    ? " Outstanding balance: NGN " . number_format($remaining, 2) . "."
+                    : " Delivery is now fully paid.";
+            } else {
+                $ref         = $payment->reason ? "({$payment->reason})" : '';
+                $balancePart = '';
+            }
             $message = "Hi {$customer->name}, your payment of NGN "
                      . number_format($payment->amount, 2)
-                     . " for order {$order->order_number} has been approved. Thank you! - Country Yoghurt";
+                     . " {$ref} has been approved.{$balancePart} Thank you! - Country Yoghurt";
             app(BulkSmsService::class)->send($customer->phone, $message);
         }
 

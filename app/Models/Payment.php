@@ -9,6 +9,7 @@ class Payment extends Model
 {
     protected $fillable = [
         'order_id',
+        'delivery_allocation_id',
         'user_id',
         'payment_number',
         'amount',
@@ -33,6 +34,11 @@ class Payment extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function deliveryAllocation(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryAllocation::class, 'delivery_allocation_id');
     }
 
     public function user(): BelongsTo

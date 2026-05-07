@@ -3,253 +3,206 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Delivery - {{ $delivery->order->order_number ?? 'Detail' }} - Country Yoghurt</title>
+    <title>Delivery {{ $delivery->delivery_number }} - Country Yoghurt</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}" />
     <link rel="icon" type="image/png" href="{{ asset('assets/img/logo.png') }}" />
+    <style>
+      .dlv-meta-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+      .dlv-meta-item { background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; padding:14px; }
+      .dlv-meta-label{ font-size:0.75rem; color:var(--text-soft); margin-bottom:4px; }
+      .dlv-meta-value{ font-size:0.97rem; font-weight:600; color:var(--text-main); }
+      .alloc-card    { background:#fff; border:1px solid #e5e0d6; border-radius:10px; padding:20px; margin-bottom:16px; }
+      .alloc-header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+      .alloc-name    { font-weight:700; font-size:1rem; }
+      .alloc-balance { text-align:right; }
+      .alloc-bal-row { font-size:0.82rem; color:var(--text-soft); margin-bottom:2px; }
+      .alloc-bal-rem { font-size:1.05rem; font-weight:700; }
+      .alloc-bal-rem.paid { color:#16a34a; }
+      .alloc-bal-rem.owed { color:#dc2626; }
+      .mini-table    { width:100%; border-collapse:collapse; margin-bottom:12px; }
+      .mini-table th { font-size:0.75rem; font-weight:600; color:var(--text-soft); padding:5px 8px; border-bottom:1px solid #e5e0d6; text-align:left; }
+      .mini-table td { padding:6px 8px; font-size:0.88rem; border-bottom:1px solid #f0ece4; }
+      .pay-history   { font-size:0.82rem; color:var(--text-soft); margin-top:8px; }
+      .pay-row       { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #e5e0d6; }
+    </style>
   </head>
   <body>
     @include('partials._mobile_topbar')
     <div class="app-shell">
-      <aside class="sidebar" id="sidebar">
-        @include('partials._sidebar')
-      </aside>
+      <aside class="sidebar" id="sidebar">@include('partials._sidebar')</aside>
       <main class="main-content">
-
         <header class="topbar">
           <div class="title-block">
-            <h2>Delivery - {{ $delivery->order->order_number ?? '#' . $delivery->id }}</h2>
-            <p>Scheduled on {{ $delivery->created_at->format('d M Y, g:ia') }}</p>
+            <h2>{{ $delivery->delivery_number }}</h2>
+            <p>
+              <span class="status-badge {{ $delivery->status_css }}">{{ $delivery->status_label }}</span>
+            </p>
           </div>
           <div class="top-actions">
-            <a href="{{ route('deliveries.index') }}" class="ghost-btn no-print">
-              <i class="bi bi-arrow-left"></i> All Deliveries
-            </a>
-            @if ($delivery->order)
-              <a href="{{ route('orders.show', $delivery->order) }}" class="ghost-btn no-print">
-                <i class="bi bi-bag"></i> View Order
-              </a>
+            @php
+              $allFullyPaid = $delivery->allocations->every(function ($alloc) {
+                  $paid = $alloc->payments->where('status', 'approved')->sum('amount');
+                  return $alloc->total_amount > 0 && $paid >= $alloc->total_amount;
+              });
+            @endphp
+            <a href="{{ route('deliveries.index') }}" class="ghost-btn"><i class="bi bi-arrow-left"></i> Back</a>
+            @if ($delivery->status === 'pending' && in_array($user->role, ['admin', 'staff'], true))
+              <a href="{{ route('deliveries.edit', $delivery) }}" class="ghost-btn"><i class="bi bi-pencil"></i> Edit</a>
+              <form method="POST" action="{{ route('deliveries.dispatch', $delivery) }}" style="display:inline;">
+                @csrf
+                <button type="submit" class="primary-btn"><i class="bi bi-truck"></i> Dispatch</button>
+              </form>
             @endif
-            <button onclick="window.print()" class="ghost-btn no-print">
-              <i class="bi bi-printer"></i> Print
-            </button>
+            @if ($delivery->status === 'dispatched' && in_array($user->role, ['admin', 'staff'], true))
+              @if ($allFullyPaid)
+                <form method="POST" action="{{ route('deliveries.complete', $delivery) }}" style="display:inline;">
+                  @csrf
+                  <button type="submit" class="primary-btn" style="background:var(--green, #16a34a);"><i class="bi bi-check-circle"></i> Mark Completed</button>
+                </form>
+              @else
+                <span class="ghost-btn" style="opacity:0.55;cursor:not-allowed;" title="All customer payments must be approved before marking complete">
+                  <i class="bi bi-lock"></i> Awaiting Payment
+                </span>
+              @endif
+            @endif
           </div>
         </header>
 
-        {{-- Print header --}}
-        <div class="print-header">
-          <img src="{{ asset('assets/img/logo.png') }}" alt="Country Yoghurt" class="print-logo" />
-          <div class="print-company-info">
-            <h2>Country Yoghurt</h2>
-            <p>Printed {{ now()->format('d M Y, g:ia') }}</p>
-          </div>
-        </div>
-
-        {{-- Alerts --}}
         @if (session('status'))
-          <div class="lp-success" style="margin-bottom: 14px;">
-            <i class="bi bi-check-circle"></i> {{ session('status') }}
-          </div>
+          <div class="lp-success" style="margin-bottom:14px;"><i class="bi bi-check-circle"></i> {{ session('status') }}</div>
         @endif
         @if (session('error'))
-          <div class="lp-error" style="margin-bottom: 14px;">
-            <i class="bi bi-exclamation-circle"></i> {{ session('error') }}
-          </div>
+          <div class="lp-error" style="margin-bottom:14px;"><i class="bi bi-exclamation-circle"></i> {{ session('error') }}</div>
         @endif
 
-        {{-- Meta grid --}}
-        <div class="ord-meta-grid" style="margin-bottom: 16px;">
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Status</p>
-            <span class="dlv-status-badge {{ $delivery->status_css }}">
-              {{ $delivery->status_label }}
-            </span>
+        {{-- Delivery meta --}}
+        <div class="dlv-meta-grid">
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Date Created</div>
+            <div class="dlv-meta-value">{{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : '-' }}</div>
           </div>
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Order</p>
-            <p class="ord-meta-value">
-              @if ($delivery->order)
-                <a href="{{ route('orders.show', $delivery->order) }}" class="pay-order-link">
-                  {{ $delivery->order->order_number }}
-                </a>
-              @else
-                -
-              @endif
-            </p>
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Created By</div>
+            <div class="dlv-meta-value">{{ $delivery->staff->name ?? '-' }}</div>
           </div>
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Customer</p>
-            <p class="ord-meta-value">{{ $delivery->order->user->name ?? '-' }}</p>
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Customers</div>
+            <div class="dlv-meta-value">{{ $delivery->allocations->count() }}</div>
           </div>
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Order Total</p>
-            <p class="ord-meta-value ord-amount">
-              ₦{{ number_format($delivery->order->total_amount ?? 0, 2) }}
-            </p>
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Total Value</div>
+            <div class="dlv-meta-value">&#8358;{{ number_format($delivery->totalAmount(), 2) }}</div>
           </div>
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Scheduled By</p>
-            <p class="ord-meta-value">{{ $delivery->staff->name ?? '-' }}</p>
-            <small class="ord-meta-sub">Staff</small>
+          @php
+            $totalOutstanding = $delivery->allocations->sum(fn($a) => $a->remainingAmount());
+          @endphp
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Outstanding Balance</div>
+            <div class="dlv-meta-value" style="color:{{ $totalOutstanding > 0 ? '#dc2626' : '#16a34a' }};">
+              {{ $totalOutstanding > 0 ? '₦'.number_format($totalOutstanding, 2) : 'Fully Paid' }}
+            </div>
           </div>
-          <div class="ord-meta-card">
-            <p class="ord-meta-label">Scheduled For</p>
-            <p class="ord-meta-value">
-              {{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : '-' }}
-            </p>
-          </div>
-          @if ($delivery->approved_at)
-            <div class="ord-meta-card">
-              <p class="ord-meta-label">Approved By</p>
-              <p class="ord-meta-value">{{ $delivery->approvedBy->name ?? '-' }}</p>
-              <small class="ord-meta-sub">{{ $delivery->approved_at->format('d M Y, g:ia') }}</small>
+          @if ($delivery->dispatched_at)
+            <div class="dlv-meta-item">
+              <div class="dlv-meta-label">Dispatched At</div>
+              <div class="dlv-meta-value">{{ $delivery->dispatched_at->format('d M Y, g:ia') }}</div>
             </div>
           @endif
-          @if ($delivery->delivered_at)
-            <div class="ord-meta-card">
-              <p class="ord-meta-label">Delivered At</p>
-              <p class="ord-meta-value">{{ $delivery->delivered_at->format('d M Y, g:ia') }}</p>
+          @if ($delivery->completed_at)
+            <div class="dlv-meta-item">
+              <div class="dlv-meta-label">Completed At</div>
+              <div class="dlv-meta-value">{{ $delivery->completed_at->format('d M Y, g:ia') }}</div>
+            </div>
+          @endif
+          @if ($delivery->notes)
+            <div class="dlv-meta-item" style="grid-column:1/-1;">
+              <div class="dlv-meta-label">Notes</div>
+              <div class="dlv-meta-value" style="font-weight:400;">{{ $delivery->notes }}</div>
             </div>
           @endif
         </div>
 
-        {{-- Delivery address --}}
-        <div class="card" style="margin-bottom: 16px; padding: 14px 16px;">
-          <p class="ord-meta-label" style="margin-bottom: 6px;">
-            <i class="bi bi-geo-alt"></i> Delivery Address
-          </p>
-          <p style="margin: 0; font-size: 0.88rem; color: var(--text-main);">
-            {{ $delivery->delivery_address }}
-          </p>
-        </div>
+        {{-- Allocations --}}
+        <h3 style="font-size:1rem; margin-bottom:12px; color:var(--text-main);">Customer Allocations</h3>
 
-        {{-- Rejection reason --}}
-        @if ($delivery->status === 'rejected' && $delivery->rejection_reason)
-          <div class="card" style="margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid var(--danger);">
-            <p class="ord-meta-label" style="margin-bottom: 6px; color: var(--danger);">
-              <i class="bi bi-exclamation-circle"></i> Rejection Reason
-            </p>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-main);">{{ $delivery->rejection_reason }}</p>
-          </div>
-        @endif
-
-        {{-- Notes --}}
-        @if ($delivery->notes)
-          <div class="card" style="margin-bottom: 16px; padding: 14px 16px;">
-            <p class="ord-meta-label" style="margin-bottom: 6px;">
-              <i class="bi bi-chat-left-text"></i> Notes
-            </p>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-main);">
-              {{ $delivery->notes }}
-            </p>
-          </div>
-        @endif
-
-        {{-- Order items summary --}}
-        @if ($delivery->order && $delivery->order->items->count())
-          <section class="card table-card" style="margin-bottom: 16px;">
-            <p class="ord-meta-label" style="padding: 14px 16px 8px; margin: 0;">
-              <i class="bi bi-list-ul"></i> Order Items
-            </p>
-            <div class="table-scroll">
-              <table class="inv-table ord-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Qty</th>
-                    <th>Subtotal (₦)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @foreach ($delivery->order->items as $item)
-                    <tr>
-                      <td>{{ $item->product_name }}</td>
-                      <td>{{ $item->quantity }}</td>
-                      <td class="ord-amount">{{ number_format($item->subtotal, 2) }}</td>
-                    </tr>
-                  @endforeach
-                  <tr class="ord-total-row">
-                    <td colspan="2"><strong>Total</strong></td>
-                    <td class="ord-amount"><strong>₦{{ number_format($delivery->order->total_amount, 2) }}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        @endif
-
-        {{-- Admin actions --}}
-        @if ($user->role === 'admin')
-          @if ($delivery->status === 'pending')
-            <section class="card ord-action-bar">
-              <p class="ord-action-title">
-                <i class="bi bi-shield-check"></i> Admin Review
-              </p>
-              <div class="ord-action-btns">
-                <form method="POST" action="{{ route('deliveries.approve', $delivery) }}" style="display:inline;">
-                  @csrf
-                  <button type="submit" class="primary-btn">
-                    <i class="bi bi-check-lg"></i> Approve Delivery
-                  </button>
-                </form>
-                <button type="button" class="ghost-btn danger-ghost" id="openRejectBtn">
-                  <i class="bi bi-x-lg"></i> Reject Delivery
-                </button>
+        @forelse ($delivery->allocations as $alloc)
+          @php
+            $paid      = $alloc->paidAmount();
+            $remaining = $alloc->remainingAmount();
+            $fullyPaid = $alloc->isFullyPaid();
+          @endphp
+          <div class="alloc-card">
+            <div class="alloc-header">
+              <div>
+                <div class="alloc-name">{{ $alloc->customer->name ?? '-' }}</div>
+                @if ($alloc->customer->shop_name)
+                  <div style="font-size:0.82rem; color:var(--text-soft);">{{ $alloc->customer->shop_name }}</div>
+                @endif
+                @if ($alloc->allocation_date)
+                  <div style="font-size:0.82rem; color:var(--text-soft); margin-top:4px;">
+                    <i class="bi bi-calendar3"></i> {{ $alloc->allocation_date->format('d M Y') }}
+                  </div>
+                @endif
               </div>
-            </section>
-
-            {{-- Reject modal --}}
-            <div class="inv-modal-overlay" id="rejectModal">
-              <div class="inv-modal inv-modal-sm">
-                <div class="inv-modal-head">
-                  <h3><i class="bi bi-x-circle" style="color:var(--danger)"></i> Reject Delivery</h3>
-                  <button class="inv-modal-close" onclick="closeRejectModal()">
-                    <i class="bi bi-x-lg"></i>
-                  </button>
+              <div class="alloc-balance">
+                <div class="alloc-bal-row">Total: &#8358;{{ number_format($alloc->total_amount, 2) }}</div>
+                <div class="alloc-bal-row">Paid: &#8358;{{ number_format($paid, 2) }}</div>
+                <div class="alloc-bal-rem {{ $fullyPaid ? 'paid' : 'owed' }}">
+                  @if ($fullyPaid) Fully Paid
+                  @else Balance: &#8358;{{ number_format($remaining, 2) }}
+                  @endif
                 </div>
-                <form method="POST" action="{{ route('deliveries.reject', $delivery) }}">
-                  @csrf
-                  <div class="inv-modal-body">
-                    <p style="margin-bottom: 12px; font-size:0.88rem;">
-                      Rejecting delivery for <strong>{{ $delivery->order->order_number ?? '#'.$delivery->id }}</strong>.
-                      You can optionally provide a reason.
-                    </p>
-                    <label class="inv-field-label" for="rejection_reason">Reason (optional)</label>
-                    <textarea name="rejection_reason" id="rejection_reason"
-                              class="inv-field-input" rows="3"
-                              placeholder="e.g. Address issue, customer unavailable…"
-                              style="resize:vertical; width:100%;"></textarea>
-                  </div>
-                  <div class="inv-modal-footer">
-                    <button type="button" class="ghost-btn" onclick="closeRejectModal()">Cancel</button>
-                    <button type="submit" class="primary-btn" style="background:var(--danger)">Reject</button>
-                  </div>
-                </form>
+                @if (!$fullyPaid && $delivery->status === 'dispatched')
+                  <a href="{{ route('deliveries.allocation.pay', $alloc) }}" class="primary-btn" style="font-size:0.8rem; padding:5px 12px; display:inline-block; margin-top:8px;">
+                    <i class="bi bi-cash-coin"></i> Submit Payment
+                  </a>
+                @endif
               </div>
             </div>
-          @elseif ($delivery->status === 'approved')
-            <section class="card ord-action-bar">
-              <p class="ord-action-title">
-                <i class="bi bi-truck"></i> Confirm Delivery
-              </p>
-              <div class="ord-action-btns">
-                <form method="POST" action="{{ route('deliveries.deliver', $delivery) }}" style="display:inline;">
-                  @csrf
-                  <button type="submit" class="primary-btn" style="background:#1a6b45;">
-                    <i class="bi bi-check2-all"></i> Mark as Delivered
-                  </button>
-                </form>
+
+            {{-- Items --}}
+            <table class="mini-table">
+              <thead>
+                <tr><th>Product</th><th>Unit Price</th><th>Qty</th><th>Subtotal</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($alloc->items as $item)
+                  <tr>
+                    <td>{{ $item->product_name }}</td>
+                    <td>&#8358;{{ number_format($item->unit_price, 2) }}</td>
+                    <td>{{ $item->quantity }}</td>
+                    <td>&#8358;{{ number_format($item->subtotal, 2) }}</td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+
+            {{-- Payment history --}}
+            @if ($alloc->payments->count())
+              <div class="pay-history">
+                <strong>Payments:</strong>
+                @foreach ($alloc->payments as $pay)
+                  <div class="pay-row">
+                    <span>{{ $pay->payment_number }} - {{ ucfirst(str_replace('_',' ',$pay->payment_method)) }}</span>
+                    <span>
+                      &#8358;{{ number_format($pay->amount, 2) }}
+                      <span class="status-badge {{ $pay->status === 'approved' ? 'status-delivered' : ($pay->status === 'rejected' ? 'status-rejected' : 'status-pending') }}" style="font-size:0.7rem; padding:1px 6px;">{{ ucfirst($pay->status) }}</span>
+                    </span>
+                  </div>
+                @endforeach
               </div>
-            </section>
-          @endif
-        @endif
+            @endif
+          </div>
+        @empty
+          <p style="color:var(--text-soft);">No customer allocations recorded.</p>
+        @endforelse
 
       </main>
     </div>
-
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       (function() {
@@ -263,23 +216,6 @@
         if (close)    close.addEventListener('click', closeSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
-
-      // Reject modal
-      var rejectModal  = document.getElementById('rejectModal');
-      var openRejectBtn = document.getElementById('openRejectBtn');
-      function closeRejectModal() {
-        if (rejectModal) { rejectModal.classList.remove('active'); document.body.style.overflow = ''; }
-      }
-      if (openRejectBtn) {
-        openRejectBtn.addEventListener('click', function() {
-          if (rejectModal) { rejectModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
-        });
-      }
-      if (rejectModal) {
-        rejectModal.addEventListener('click', function(e) {
-          if (e.target === rejectModal) closeRejectModal();
-        });
-      }
     </script>
   </body>
 </html>

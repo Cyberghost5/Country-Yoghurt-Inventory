@@ -33,6 +33,9 @@
           <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/5.jpg') }}')"></div>
           <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/6.jpg') }}')"></div>
           <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/7.jpg') }}')"></div>
+          <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/8.jpeg') }}')"></div>
+          <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/9.jpeg') }}')"></div>
+          <div class="lp-slide" style="background-image:url('{{ asset('assets/img/sliders/10.jpeg') }}')"></div>
           <div class="lp-slider-overlay"></div>
         </div>
 

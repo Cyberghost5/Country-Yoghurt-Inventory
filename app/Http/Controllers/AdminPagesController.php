@@ -139,10 +139,14 @@ class AdminPagesController extends Controller
             ->latest()
             ->get();
 
-        $deliveries = DeliveryAllocation::where('customer_id', $customer->id)
-            ->with(['delivery' => fn($q) => $q->with('staff:id,name'), 'items'])
-            ->latest()
-            ->get();
+        $deliveriesQuery = DeliveryAllocation::where('customer_id', $customer->id)
+            ->with(['delivery' => fn($q) => $q->with('staff:id,name'), 'items']);
+
+        if ($user->role === 'staff') {
+            $deliveriesQuery->whereHas('delivery', fn($q) => $q->where('staff_id', $user->id));
+        }
+
+        $deliveries = $deliveriesQuery->latest()->get();
 
         // Summary stats
         $totalOrders   = $orders->count();

@@ -19,6 +19,7 @@ class Delivery extends Model
     ];
 
     protected $casts = [
+        'staff_id'      => 'integer',
         'scheduled_at'  => 'date',
         'dispatched_at' => 'datetime',
         'completed_at'  => 'datetime',

@@ -218,14 +218,6 @@
               </tbody>
             </table>
 
-            @if (!$fullyPaid && $delivery->status === 'dispatched')
-              <div style="margin-top:10px;">
-                <a href="{{ route('deliveries.allocation.pay', $alloc) }}" class="primary-btn" style="font-size:0.8rem; padding:5px 12px; display:inline-block;">
-                  <i class="bi bi-cash-coin"></i> Submit Payment
-                </a>
-              </div>
-            @endif
-
             {{-- Payment history --}}
             @if ($alloc->payments->count())
               <div class="pay-history">

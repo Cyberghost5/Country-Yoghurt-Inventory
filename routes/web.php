@@ -89,7 +89,6 @@ Route::middleware('auth')->group(function () {
     /* ── Payments ── */
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/create', [PaymentController::class, 'create'])->name('payments.create');
-    Route::get('/delivery-allocations/{allocation}/pay', [PaymentController::class, 'deliveryPay'])->name('deliveries.allocation.pay');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');

@@ -61,7 +61,7 @@
               </label>
 
               <label>
-                Email@if($targetUser->role === 'customer') <span style="color:var(--text-soft); font-weight:400;">(optional)</span>@endif
+                Email @if($targetUser->role === 'customer') <span style="color:var(--text-soft); font-weight:400;">(optional)</span>@endif
                 <input type="email" name="email" value="{{ old('email', $targetUser->email) }}" @if($targetUser->role !== 'customer') required @endif />
               </label>
 

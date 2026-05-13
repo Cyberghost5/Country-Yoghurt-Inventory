@@ -17,6 +17,7 @@ class DeliveryAllocation extends Model
     ];
 
     protected $casts = [
+        'customer_id'     => 'integer',
         'total_amount'    => 'decimal:2',
         'allocation_date' => 'date',
     ];

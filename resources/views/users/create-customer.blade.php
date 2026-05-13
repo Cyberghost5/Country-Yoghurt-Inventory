@@ -60,8 +60,8 @@
               </label>
 
               <label>
-                Email
-                <input type="email" name="email" value="{{ old('email') }}" required />
+                Email <span style="color:var(--text-soft); font-weight:400;">(optional)</span>
+                <input type="email" name="email" value="{{ old('email') }}" />
               </label>
 
               <label>

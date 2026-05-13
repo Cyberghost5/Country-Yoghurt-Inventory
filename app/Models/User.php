@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'phone', 'state', 'lga', 'shop_name', 'address', 'password', 'role'])]
+#[Fillable(['name', 'email', 'phone', 'state', 'staff_states', 'lga', 'shop_name', 'address', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -26,7 +26,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
+            'staff_states'      => 'array',
         ];
     }
 
@@ -38,5 +39,17 @@ class User extends Authenticatable
     public function isAdminOrStaff(): bool
     {
         return in_array($this->role, ['admin', 'super_admin', 'staff'], true);
+    }
+
+    /**
+     * Returns the list of states this staff member covers.
+     * Falls back to [$this->state] for legacy records without staff_states.
+     */
+    public function staffStates(): array
+    {
+        if ($this->role === 'staff' && !empty($this->staff_states)) {
+            return $this->staff_states;
+        }
+        return $this->state ? [$this->state] : [];
     }
 }

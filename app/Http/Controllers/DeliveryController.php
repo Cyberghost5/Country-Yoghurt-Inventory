@@ -77,7 +77,7 @@ class DeliveryController extends Controller
         if (!$user->isAdminOrStaff()) abort(403);
 
         $customers = User::where('role', 'customer')
-            ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+            ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
             ->orderBy('name')
             ->get(['id', 'name', 'shop_name', 'state']);
 
@@ -185,7 +185,7 @@ class DeliveryController extends Controller
         $delivery->load(['allocations.customer', 'allocations.items']);
 
         $customers = User::where('role', 'customer')
-            ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+            ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
             ->orderBy('name')
             ->get(['id', 'name', 'shop_name', 'state']);
 

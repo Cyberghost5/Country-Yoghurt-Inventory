@@ -20,7 +20,7 @@ class AdminPagesController extends Controller
         $staff = User::where('role', 'staff')
             ->orderBy('state')
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'state', 'lga', 'created_at']);
+            ->get(['id', 'name', 'email', 'phone', 'state', 'staff_states', 'lga', 'created_at']);
 
         return view('admin.staff-index', compact('user', 'staff'));
     }
@@ -92,7 +92,7 @@ class AdminPagesController extends Controller
             WHERE da.customer_id = users.id AND d.status IN ('dispatched','completed') AND da.total_amount > COALESCE(ps.paid, 0)) as outstanding_debt";
 
         $search   = $request->input('search');
-        $state    = $user->role === 'staff' ? $user->state : $request->input('state');
+        $state    = $user->role === 'staff' ? null : $request->input('state');
         $debtOnly = $request->boolean('debt');
 
         $query = User::where('role', 'customer')
@@ -103,7 +103,7 @@ class AdminPagesController extends Controller
                   ->orWhere('shop_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             }))
-            ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+            ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
             ->orderBy('shop_name')
             ->orderBy('name');
 
@@ -126,7 +126,7 @@ class AdminPagesController extends Controller
         if ($customer->role !== 'customer') abort(404);
 
         // Staff can only view customers in their state
-        if ($user->role === 'staff' && $customer->state !== $user->state) abort(403);
+        if ($user->role === 'staff' && !in_array($customer->state, $user->staffStates(), true)) abort(403);
 
         $orders = Order::where('user_id', $customer->id)
             ->withCount('items')

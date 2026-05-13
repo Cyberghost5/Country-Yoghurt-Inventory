@@ -61,8 +61,8 @@
               </label>
 
               <label>
-                Email
-                <input type="email" name="email" value="{{ old('email', $targetUser->email) }}" required />
+                Email@if($targetUser->role === 'customer') <span style="color:var(--text-soft); font-weight:400;">(optional)</span>@endif
+                <input type="email" name="email" value="{{ old('email', $targetUser->email) }}" @if($targetUser->role !== 'customer') required @endif />
               </label>
 
               <label>
@@ -82,22 +82,38 @@
                 </label>
               @endif
 
-              <label>
-                State
-                <select id="state" name="state" required>
-                  <option value="">Select State</option>
-                  @foreach($states as $state)
-                    <option value="{{ $state }}" {{ old('state', $targetUser->state) === $state ? 'selected' : '' }}>{{ $state }}</option>
-                  @endforeach
-                </select>
-              </label>
+              @if($targetUser->role === 'staff')
+                @php $staffSelectedStates = old('states', $targetUser->staffStates()); @endphp
+                <div style="grid-column: 1 / -1;">
+                  <span style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Covered States</span>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:200px; overflow-y:auto;">
+                    @foreach($states as $st)
+                      <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:150px;">
+                        <input type="checkbox" name="states[]" value="{{ $st }}" {{ in_array($st, $staffSelectedStates) ? 'checked' : '' }}>
+                        {{ $st }}
+                      </label>
+                    @endforeach
+                  </div>
+                  @error('states') <span style="color:#dc2626;font-size:0.8rem;">{{ $message }}</span> @enderror
+                </div>
+              @else
+                <label>
+                  State
+                  <select id="state" name="state" required>
+                    <option value="">Select State</option>
+                    @foreach($states as $state)
+                      <option value="{{ $state }}" {{ old('state', $targetUser->state) === $state ? 'selected' : '' }}>{{ $state }}</option>
+                    @endforeach
+                  </select>
+                </label>
 
-              <label>
-                LGA
-                <select id="lga" name="lga" required>
-                  <option value="">Select LGA</option>
-                </select>
-              </label>
+                <label>
+                  LGA
+                  <select id="lga" name="lga" required>
+                    <option value="">Select LGA</option>
+                  </select>
+                </label>
+              @endif
 
               <label>
                 New Password
@@ -119,6 +135,7 @@
       </main>
     </div>
 
+    @if($targetUser->role !== 'staff')
     <script id="lga-map-data" type="application/json">@json($lgaMap)</script>
     <script>
       window.CY_LGA_MAP = JSON.parse(document.getElementById('lga-map-data').textContent || '{}');
@@ -128,6 +145,7 @@
     <script>
       window.CYPopulateLgaOptions('state', 'lga', window.CY_LGA_MAP, window.CY_SELECTED_LGA);
     </script>
+    @endif
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       (function() {

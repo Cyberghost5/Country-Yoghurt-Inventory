@@ -53,7 +53,7 @@ class OrderNotification extends Notification
 
         return match ($this->type) {
             'placed'    => "A new order {$num} ({$amount}) has been placed and is awaiting your approval.",
-            'approved'  => "Your order {$num} ({$amount}) has been approved.",
+            'approved'  => "Your order {$num} ({$amount}) has been received.",
             'rejected'  => "Your order {$num} has been rejected.",
             'delivered' => "Your order {$num} has been marked as delivered.",
             default     => "Order {$num} status updated.",

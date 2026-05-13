@@ -22,7 +22,7 @@ class PaymentController extends Controller
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
+                ->whereIn('state', $user->staffStates())
                 ->pluck('id');
             $query->whereIn('user_id', $stateCustomerIds);
         } elseif ($user->role === 'customer') {
@@ -36,7 +36,7 @@ class PaymentController extends Controller
         $payments = $query->paginate(20)->withQueryString();
 
         $base = match ($user->role) {
-            'staff'    => Payment::whereIn('user_id', User::where('role', 'customer')->where('state', $user->state)->pluck('id')),
+            'staff'    => Payment::whereIn('user_id', User::where('role', 'customer')->whereIn('state', $user->staffStates())->pluck('id')),
             'customer' => Payment::where('user_id', $user->id),
             default    => Payment::query(),
         };
@@ -103,7 +103,7 @@ class PaymentController extends Controller
         $customers = collect();
         if ($user->isAdminOrStaff()) {
             $customers = User::where('role', 'customer')
-                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
                 ->orderBy('name')
                 ->get(['id', 'name', 'shop_name', 'state']);
         }
@@ -209,7 +209,7 @@ class PaymentController extends Controller
                 $paymentOwnerId = $allocation->customer_id;
             } elseif ($request->filled('customer_id')) {
                 $customer = User::where('role', 'customer')
-                    ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                    ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
                     ->findOrFail($request->integer('customer_id'));
                 $paymentOwnerId = $customer->id;
             }
@@ -262,7 +262,7 @@ class PaymentController extends Controller
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
+                ->whereIn('state', $user->staffStates())
                 ->pluck('id');
             if (!$stateCustomerIds->contains($payment->user_id)) {
                 abort(403);
@@ -317,7 +317,7 @@ class PaymentController extends Controller
             }
             $message = "Hi {$customer->name}, your payment of NGN "
                      . number_format($payment->amount, 2)
-                     . " {$ref} has been approved.{$balancePart} Thank you! - Country Yoghurt";
+                     . " {$ref} has been received.{$balancePart} Thank you! - Country Yoghurt";
             app(BulkSmsService::class)->send($customer->phone, $message);
         }
 

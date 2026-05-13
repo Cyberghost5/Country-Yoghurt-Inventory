@@ -64,21 +64,17 @@
                 <input type="text" name="phone" value="{{ old('phone') }}" required />
               </label>
 
-              <label>
-                State
-                <select id="state" name="state" required>
-                  <option value="">Select State</option>
-                  @foreach($states as $state)
-                    <option value="{{ $state }}" {{ old('state') === $state ? 'selected' : '' }}>{{ $state }}</option>
+              <label style="grid-column: 1 / -1;">
+                Covered States
+                <div style="display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:8px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:200px; overflow-y:auto;">
+                  @foreach($states as $st)
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:150px;">
+                      <input type="checkbox" name="states[]" value="{{ $st }}" {{ in_array($st, old('states', [])) ? 'checked' : '' }}>
+                      {{ $st }}
+                    </label>
                   @endforeach
-                </select>
-              </label>
-
-              <label>
-                LGA
-                <select id="lga" name="lga" required>
-                  <option value="">Select LGA</option>
-                </select>
+                </div>
+                @error('states') <span style="color:#dc2626;font-size:0.8rem;">{{ $message }}</span> @enderror
               </label>
 
               <label>
@@ -100,15 +96,6 @@
       </main>
     </div>
 
-    <script id="lga-map-data" type="application/json">@json($lgaMap)</script>
-    <script>
-      window.CY_LGA_MAP = JSON.parse(document.getElementById('lga-map-data').textContent || '{}');
-      window.CY_SELECTED_LGA = "{{ old('lga', '') }}";
-    </script>
-    <script src="{{ asset('assets/js/location-dropdown.js') }}"></script>
-    <script>
-      window.CYPopulateLgaOptions('state', 'lga', window.CY_LGA_MAP, window.CY_SELECTED_LGA);
-    </script>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       (function() {

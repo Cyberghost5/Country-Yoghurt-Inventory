@@ -30,27 +30,26 @@ class UserManagementController extends Controller
             abort(403);
         }
 
-        $state = $this->validatedState($request);
+        $allowedStates = $this->assignableStates($request->user());
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'max:20'],
-            'state' => ['required', 'string'],
-            'lga' => ['required', 'string', 'max:120'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone'    => ['required', 'string', 'max:20'],
+            'states'   => ['required', 'array', 'min:1'],
+            'states.*' => ['required', 'string', Rule::in($allowedStates)],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $this->validateLga($state, $data['lga']);
-
         User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
-            'state' => $state,
-            'lga' => $data['lga'],
-            'role' => 'staff',
-            'password' => Hash::make($data['password']),
+            'name'         => $data['name'],
+            'email'        => $data['email'],
+            'phone'        => $data['phone'],
+            'state'        => $data['states'][0],
+            'staff_states' => $data['states'],
+            'lga'          => null,
+            'role'         => 'staff',
+            'password'     => Hash::make($data['password']),
         ]);
 
         return redirect()->route('users.create.staff')->with('status', 'Staff account created successfully.');
@@ -80,7 +79,7 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'shop_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string'],
@@ -132,12 +131,18 @@ class UserManagementController extends Controller
 
         $rules = [
             'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'email'    => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone'    => ['required', 'string', 'max:20'],
             'state'    => ['required', 'string'],
             'lga'      => ['required', 'string', 'max:120'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
+
+        if ($user->role === 'staff') {
+            unset($rules['state'], $rules['lga']);
+            $rules['states']   = ['required', 'array', 'min:1'];
+            $rules['states.*'] = ['required', 'string', Rule::in(array_keys(config('nigeria.lgas')))];
+        }
 
         if ($user->role === 'customer') {
             $rules['shop_name'] = ['required', 'string', 'max:255'];
@@ -146,19 +151,28 @@ class UserManagementController extends Controller
 
         $data = $request->validate($rules);
 
-        $lgaMap    = config('nigeria.lgas');
-        $validLgas = $lgaMap[$data['state']] ?? [];
-        if (!in_array($data['lga'], $validLgas, true)) {
-            throw ValidationException::withMessages(['lga' => 'Selected LGA is invalid for the selected state.']);
+        if ($user->role !== 'staff') {
+            $lgaMap    = config('nigeria.lgas');
+            $validLgas = $lgaMap[$data['state']] ?? [];
+            if (!in_array($data['lga'], $validLgas, true)) {
+                throw ValidationException::withMessages(['lga' => 'Selected LGA is invalid for the selected state.']);
+            }
         }
 
         $updates = [
             'name'  => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
-            'state' => $data['state'],
-            'lga'   => $data['lga'],
         ];
+
+        if ($user->role === 'staff') {
+            $updates['state']        = $data['states'][0];
+            $updates['staff_states'] = $data['states'];
+            $updates['lga']          = null;
+        } else {
+            $updates['state'] = $data['state'];
+            $updates['lga']   = $data['lga'];
+        }
 
         if ($user->role === 'customer') {
             $updates['shop_name'] = $data['shop_name'];
@@ -205,7 +219,7 @@ class UserManagementController extends Controller
         if (!$actor->isAdminOrStaff()) abort(403);
 
         $customers = User::where('role', 'customer')
-            ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
+            ->when($actor->role === 'staff', fn ($q) => $q->whereIn('state', $actor->staffStates()))
             ->orderBy('name')
             ->get(['id', 'name', 'shop_name', 'state']);
 
@@ -306,11 +320,7 @@ class UserManagementController extends Controller
 
     private function assignableStates(User $user): array
     {
-        if ($user->isAdmin()) {
-            return array_keys(config('nigeria.lgas'));
-        }
-
-        return $user->state ? [$user->state] : [];
+        return $user->isAdmin() ? array_keys(config('nigeria.lgas')) : $user->staffStates();
     }
 
     private function validatedState(Request $request): string

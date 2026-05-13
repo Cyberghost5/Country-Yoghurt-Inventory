@@ -26,15 +26,14 @@
           <div class="card-head"><div><h3>Staff List</h3><span>{{ $staff->count() }} staff accounts</span></div></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>State</th><th>LGA</th><th>Joined</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Covered States</th><th>Joined</th><th>Actions</th></tr></thead>
               <tbody>
                 @forelse($staff as $row)
                   <tr>
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->email }}</td>
                     <td>{{ $row->phone }}</td>
-                    <td>{{ $row->state }}</td>
-                    <td>{{ $row->lga }}</td>
+                    <td>{{ implode(', ', $row->staffStates()) }}</td>
                     <td>{{ optional($row->created_at)->format('d M Y') }}</td>
                     <td class="user-actions">
                       <a href="{{ route('users.edit', $row->id) }}" class="ua-btn ua-edit"><i class="bi bi-pencil"></i> Edit</a>
@@ -45,7 +44,7 @@
                     </td>
                   </tr>
                 @empty
-                  <tr><td colspan="7">No staff records found.</td></tr>
+                  <tr><td colspan="6">No staff records found.</td></tr>
                 @endforelse
               </tbody>
             </table>

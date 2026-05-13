@@ -60,7 +60,7 @@ class PaymentNotification extends Notification
 
         return match ($this->type) {
             'submitted'      => "A new payment of {$amount} {$ref} has been submitted and awaits review.",
-            'approved'       => "Your payment of {$amount} {$ref} has been approved.",
+            'approved'       => "Your payment of {$amount} {$ref} has been received.",
             'rejected'       => "Your payment of {$amount} {$ref} has been rejected." .
                                ($this->payment->rejection_reason ? " Reason: {$this->payment->rejection_reason}" : ''),
             'admin_approved' => "{$this->approverName} approved a payment of {$amount} {$ref}.",

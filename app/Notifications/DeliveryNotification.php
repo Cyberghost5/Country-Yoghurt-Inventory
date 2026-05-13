@@ -51,7 +51,7 @@ class DeliveryNotification extends Notification
 
         return match ($this->type) {
             'scheduled'  => "A delivery for order {$num} has been scheduled by {$this->delivery->staff?->name} and awaits your approval.",
-            'approved'   => "Your delivery for order {$num} has been approved and is now out for delivery.",
+            'approved'   => "Your delivery for order {$num} has been received and is now out for delivery.",
             'delivered'  => "Your order {$num} has been delivered successfully.",
             default      => "Delivery for order {$num} status updated.",
         };

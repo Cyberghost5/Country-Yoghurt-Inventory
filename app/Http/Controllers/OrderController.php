@@ -21,7 +21,7 @@ class OrderController extends Controller
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
+                ->whereIn('state', $user->staffStates())
                 ->pluck('id');
             $query->whereIn('user_id', $stateCustomerIds);
         } elseif ($user->role === 'customer') {
@@ -37,7 +37,7 @@ class OrderController extends Controller
         // Reusable scope for counts
         $scoped = function ($q) use ($user) {
             if ($user->role === 'staff') {
-                $ids = User::where('role', 'customer')->where('state', $user->state)->pluck('id');
+                $ids = User::where('role', 'customer')->whereIn('state', $user->staffStates())->pluck('id');
                 return $q->whereIn('user_id', $ids);
             }
             if ($user->role === 'customer') {
@@ -66,7 +66,7 @@ class OrderController extends Controller
         $customers = collect();
         if ($user->isAdminOrStaff()) {
             $customers = User::where('role', 'customer')
-                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
                 ->orderBy('name')
                 ->get(['id', 'name', 'shop_name', 'state']);
         }
@@ -103,7 +103,7 @@ class OrderController extends Controller
 
         // Validate the customer exists and staff can only see their state's customers
         $customer = User::where('role', 'customer')
-            ->when($actor->role === 'staff', fn ($q) => $q->where('state', $actor->state))
+            ->when($actor->role === 'staff', fn ($q) => $q->whereIn('state', $actor->staffStates()))
             ->findOrFail($customerId);
 
         $query = Order::where('user_id', $customer->id);
@@ -204,7 +204,7 @@ class OrderController extends Controller
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
+                ->whereIn('state', $user->staffStates())
                 ->pluck('id');
             if (!$stateCustomerIds->contains($order->user_id)) {
                 abort(403);
@@ -322,7 +322,7 @@ class OrderController extends Controller
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
-                ->where('state', $user->state)
+                ->whereIn('state', $user->staffStates())
                 ->pluck('id');
             if (!$stateCustomerIds->contains($order->user_id)) abort(403);
         }
@@ -343,7 +343,7 @@ class OrderController extends Controller
         if (!$user->isAdminOrStaff()) abort(403);
 
         if ($user->role === 'staff') {
-            $ids    = User::where('role', 'customer')->where('state', $user->state)->pluck('id');
+            $ids    = User::where('role', 'customer')->whereIn('state', $user->staffStates())->pluck('id');
             $orders = Order::whereIn('user_id', $ids)->get();
         } else {
             $orders = Order::all();

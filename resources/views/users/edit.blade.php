@@ -89,12 +89,19 @@
                   <div style="display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:200px; overflow-y:auto;">
                     @foreach($states as $st)
                       <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:150px;">
-                        <input type="checkbox" name="states[]" value="{{ $st }}" {{ in_array($st, $staffSelectedStates) ? 'checked' : '' }}>
+                        <input type="checkbox" name="states[]" value="{{ $st }}" class="state-cb-edit" {{ in_array($st, $staffSelectedStates) ? 'checked' : '' }}>
                         {{ $st }}
                       </label>
                     @endforeach
                   </div>
                   @error('states') <span style="color:#dc2626;font-size:0.8rem;">{{ $message }}</span> @enderror
+                </div>
+
+                <div style="grid-column: 1 / -1;">
+                  <span style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Covered LGAs <span style="color:var(--text-soft); font-weight:400;">(optional)</span></span>
+                  <div id="lgaContainerEdit" style="display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:250px; overflow-y:auto;">
+                    <span style="color:var(--text-soft); font-size:0.85rem;">Loading…</span>
+                  </div>
                 </div>
               @else
                 <label>
@@ -144,6 +151,33 @@
     <script src="{{ asset('assets/js/location-dropdown.js') }}"></script>
     <script>
       window.CYPopulateLgaOptions('state', 'lga', window.CY_LGA_MAP, window.CY_SELECTED_LGA);
+    </script>
+    @else
+    <script>
+      var LGA_MAP_EDIT = @json($lgaMap);
+      var OLD_LGAS_EDIT = @json(old('lgas', $targetUser->staffLgas()));
+
+      function rebuildLgasEdit() {
+        var checkedStates = Array.from(document.querySelectorAll('.state-cb-edit:checked')).map(function(cb) { return cb.value; });
+        var container = document.getElementById('lgaContainerEdit');
+        if (checkedStates.length === 0) {
+          container.innerHTML = '<span style="color:var(--text-soft); font-size:0.85rem;">Select at least one state above to see LGAs.</span>';
+          return;
+        }
+        var lgas = [];
+        checkedStates.forEach(function(st) { if (LGA_MAP_EDIT[st]) lgas = lgas.concat(LGA_MAP_EDIT[st]); });
+        lgas = lgas.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort();
+        container.innerHTML = lgas.map(function(lga) {
+          var checked = OLD_LGAS_EDIT.indexOf(lga) !== -1 ? ' checked' : '';
+          return '<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:200px;">' +
+            '<input type="checkbox" name="lgas[]" value="' + lga + '"' + checked + '> ' + lga + '</label>';
+        }).join('');
+      }
+
+      document.querySelectorAll('.state-cb-edit').forEach(function(cb) {
+        cb.addEventListener('change', rebuildLgasEdit);
+      });
+      rebuildLgasEdit();
     </script>
     @endif
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>

@@ -69,13 +69,20 @@
                 <div style="display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:8px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:200px; overflow-y:auto;">
                   @foreach($states as $st)
                     <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:150px;">
-                      <input type="checkbox" name="states[]" value="{{ $st }}" {{ in_array($st, old('states', [])) ? 'checked' : '' }}>
+                      <input type="checkbox" name="states[]" value="{{ $st }}" class="state-cb" {{ in_array($st, old('states', [])) ? 'checked' : '' }}>
                       {{ $st }}
                     </label>
                   @endforeach
                 </div>
                 @error('states') <span style="color:#dc2626;font-size:0.8rem;">{{ $message }}</span> @enderror
               </label>
+
+              <div style="grid-column: 1 / -1;" id="lgaSection">
+                <span style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Covered LGAs <span style="color:var(--text-soft); font-weight:400;">(optional — leave blank for all LGAs in selected states)</span></span>
+                <div id="lgaContainer" style="display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:250px; overflow-y:auto;">
+                  <span style="color:var(--text-soft); font-size:0.85rem;">Select at least one state above to see LGAs.</span>
+                </div>
+              </div>
 
               <label>
                 Password
@@ -109,6 +116,31 @@
         if (close) close.addEventListener('click', closeSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
       })();
+
+      var LGA_MAP = @json($lgaMap);
+      var OLD_LGAS = @json(old('lgas', []));
+
+      function rebuildLgas() {
+        var checkedStates = Array.from(document.querySelectorAll('.state-cb:checked')).map(function(cb) { return cb.value; });
+        var container = document.getElementById('lgaContainer');
+        if (checkedStates.length === 0) {
+          container.innerHTML = '<span style="color:var(--text-soft); font-size:0.85rem;">Select at least one state above to see LGAs.</span>';
+          return;
+        }
+        var lgas = [];
+        checkedStates.forEach(function(st) { if (LGA_MAP[st]) lgas = lgas.concat(LGA_MAP[st]); });
+        lgas = lgas.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort();
+        container.innerHTML = lgas.map(function(lga) {
+          var checked = OLD_LGAS.indexOf(lga) !== -1 ? ' checked' : '';
+          return '<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;min-width:200px;">' +
+            '<input type="checkbox" name="lgas[]" value="' + lga + '"' + checked + '> ' + lga + '</label>';
+        }).join('');
+      }
+
+      document.querySelectorAll('.state-cb').forEach(function(cb) {
+        cb.addEventListener('change', rebuildLgas);
+      });
+      rebuildLgas();
     </script>
   </body>
 </html>

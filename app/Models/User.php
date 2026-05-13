@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'phone', 'state', 'staff_states', 'lga', 'shop_name', 'address', 'password', 'role'])]
+#[Fillable(['name', 'email', 'phone', 'state', 'staff_states', 'lga', 'staff_lgas', 'shop_name', 'address', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -28,6 +28,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'staff_states'      => 'array',
+            'staff_lgas'        => 'array',
         ];
     }
 
@@ -43,7 +44,6 @@ class User extends Authenticatable
 
     /**
      * Returns the list of states this staff member covers.
-     * Falls back to [$this->state] for legacy records without staff_states.
      */
     public function staffStates(): array
     {
@@ -51,5 +51,16 @@ class User extends Authenticatable
             return $this->staff_states;
         }
         return $this->state ? [$this->state] : [];
+    }
+
+    /**
+     * Returns the list of LGAs this staff member covers.
+     */
+    public function staffLgas(): array
+    {
+        if ($this->role === 'staff' && !empty($this->staff_lgas)) {
+            return $this->staff_lgas;
+        }
+        return $this->lga ? [$this->lga] : [];
     }
 }

@@ -41,6 +41,15 @@ class UserManagementController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $allLgas = collect($data['states'])
+            ->flatMap(fn ($s) => config('nigeria.lgas')[$s] ?? [])
+            ->unique()->values()->all();
+
+        $data2 = $request->validate([
+            'lgas'   => ['nullable', 'array'],
+            'lgas.*' => ['required', 'string', Rule::in($allLgas)],
+        ]);
+
         User::create([
             'name'         => $data['name'],
             'email'        => $data['email'],
@@ -48,6 +57,7 @@ class UserManagementController extends Controller
             'state'        => $data['states'][0],
             'staff_states' => $data['states'],
             'lga'          => null,
+            'staff_lgas'   => $data2['lgas'] ?? [],
             'role'         => 'staff',
             'password'     => Hash::make($data['password']),
         ]);
@@ -142,6 +152,8 @@ class UserManagementController extends Controller
             unset($rules['state'], $rules['lga']);
             $rules['states']   = ['required', 'array', 'min:1'];
             $rules['states.*'] = ['required', 'string', Rule::in(array_keys(config('nigeria.lgas')))];
+            $rules['lgas']     = ['nullable', 'array'];
+            $rules['lgas.*']   = ['required', 'string'];
         }
 
         if ($user->role === 'customer') {
@@ -169,6 +181,7 @@ class UserManagementController extends Controller
             $updates['state']        = $data['states'][0];
             $updates['staff_states'] = $data['states'];
             $updates['lga']          = null;
+            $updates['staff_lgas']   = $data['lgas'] ?? [];
         } else {
             $updates['state'] = $data['state'];
             $updates['lga']   = $data['lga'];

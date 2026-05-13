@@ -20,7 +20,7 @@ class AdminPagesController extends Controller
         $staff = User::where('role', 'staff')
             ->orderBy('state')
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'state', 'staff_states', 'lga', 'created_at']);
+            ->get(['id', 'name', 'email', 'phone', 'state', 'staff_states', 'staff_lgas', 'lga', 'created_at']);
 
         return view('admin.staff-index', compact('user', 'staff'));
     }

@@ -20,6 +20,7 @@ class Order extends Model
     ];
 
     protected $casts = [
+        'user_id'      => 'integer',
         'approved_at'  => 'datetime',
         'total_amount' => 'decimal:2',
     ];

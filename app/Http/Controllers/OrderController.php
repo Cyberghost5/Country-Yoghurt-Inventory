@@ -145,7 +145,7 @@ class OrderController extends Controller
         $orderOwner = $user;
         if ($user->isAdminOrStaff() && $request->filled('customer_id')) {
             $customer = User::where('role', 'customer')
-                ->when($user->role === 'staff', fn ($q) => $q->where('state', $user->state))
+                ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
                 ->findOrFail($request->integer('customer_id'));
             $orderOwner = $customer;
         }

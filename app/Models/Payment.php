@@ -25,6 +25,7 @@ class Payment extends Model
     ];
 
     protected $casts = [
+        'user_id'     => 'integer',
         'amount'      => 'decimal:2',
         'reviewed_at' => 'datetime',
     ];

@@ -159,7 +159,17 @@ class DashboardController extends Controller
         // ── Customer stats ─────────────────────────────────────────
         $stateBankAccount = null;
         if ($user->role === 'customer') {
-            $stateBankAccount = BankAccount::where('state', $user->state)->first();
+            $staffMember = \App\Models\User::where('role', 'staff')
+                ->whereJsonContains('staff_states', $user->state)
+                ->where(function ($q) use ($user) {
+                    $q->whereNull('staff_lgas')
+                      ->orWhereRaw('JSON_LENGTH(staff_lgas) = 0');
+                    if ($user->lga) {
+                        $q->orWhereJsonContains('staff_lgas', $user->lga);
+                    }
+                })
+                ->first();
+            $stateBankAccount = $staffMember ? BankAccount::where('staff_id', $staffMember->id)->first() : null;
             $customerStats = [
                 'totalOrders'    => Order::where('user_id', $user->id)->count(),
                 'pendingOrders'  => Order::where('user_id', $user->id)->where('status', 'pending')->count(),

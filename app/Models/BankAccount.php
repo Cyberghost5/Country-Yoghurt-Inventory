@@ -8,12 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BankAccount extends Model
 {
     protected $fillable = [
-        'state',
+        'staff_id',
         'bank_name',
         'account_name',
         'account_number',
         'created_by',
     ];
+
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'staff_id');
+    }
 
     public function creator(): BelongsTo
     {

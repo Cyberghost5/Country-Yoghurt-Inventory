@@ -33,7 +33,7 @@
         <header class="topbar">
           <div class="title-block">
             <h2>Bank Accounts</h2>
-            <p>Manage official bank account details shown to customers per state.</p>
+            <p>Manage official bank account details assigned to each staff member.</p>
           </div>
         </header>
 
@@ -49,17 +49,21 @@
         {{-- Add / Update form --}}
         <section class="ba-form-card">
           <h3 style="margin:0 0 16px; font-size:1rem; color:var(--text-main);">
-            <i class="bi bi-plus-circle"></i> Add / Update State Bank Account
+            <i class="bi bi-plus-circle"></i> Add / Update Staff Bank Account
           </h3>
           <form method="POST" action="{{ route('admin.bank_accounts.store') }}">
             @csrf
             <div class="ba-form-grid">
               <div class="form-group">
-                <label class="form-label">State <span style="color:#dc2626;">*</span></label>
-                <select name="state" class="form-input" required>
-                  <option value="">- Select state -</option>
-                  @foreach ($states as $s)
-                    <option value="{{ $s }}" {{ old('state') === $s ? 'selected' : '' }}>{{ $s }}</option>
+                <label class="form-label">Staff Member <span style="color:#dc2626;">*</span></label>
+                <select name="staff_id" class="form-input" required>
+                  <option value="">- Select staff -</option>
+                  @foreach ($staff as $s)
+                    <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>
+                      {{ $s->name }}
+                      @php $covered = $s->staffStates(); @endphp
+                      @if (count($covered)) ({{ implode(', ', $covered) }}) @endif
+                    </option>
                   @endforeach
                 </select>
               </div>
@@ -89,12 +93,20 @@
           <div class="ba-grid">
             @foreach ($accounts as $acct)
               <div class="ba-card">
-                <div class="ba-card-state"><i class="bi bi-geo-alt"></i> {{ $acct->state }}</div>
+                <div class="ba-card-state">
+                  <i class="bi bi-person"></i> {{ optional($acct->staff)->name ?? 'Unassigned' }}
+                  @if ($acct->staff)
+                    @php $covered = $acct->staff->staffStates(); @endphp
+                    @if (count($covered))
+                      &mdash; <span style="font-weight:400;">{{ implode(', ', $covered) }}</span>
+                    @endif
+                  @endif
+                </div>
                 <div class="ba-card-bank">{{ $acct->bank_name }}</div>
                 <div class="ba-card-acct">{{ $acct->account_name }}</div>
                 <div class="ba-card-num">{{ $acct->account_number }}</div>
                 <form method="POST" action="{{ route('admin.bank_accounts.destroy', $acct) }}"
-                      onsubmit="return confirm('Remove bank details for {{ $acct->state }}?')">
+                      onsubmit="return confirm('Remove bank details for {{ optional($acct->staff)->name ?? 'this staff' }}?')">
                   @csrf @method('DELETE')
                   <button type="submit" class="ba-delete-btn" title="Remove"><i class="bi bi-trash3"></i></button>
                 </form>

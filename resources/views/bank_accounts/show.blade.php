@@ -141,12 +141,21 @@
           </div>
         </div>
 
-        {{-- Your state's account --}}
+        {{-- Assigned staff's account --}}
         @if ($account)
           <div class="ba-hero">
             <div class="ba-hero-icon"><i class="bi bi-bank"></i></div>
             <div style="flex:1; min-width:0;">
-              <div class="ba-hero-state"><i class="bi bi-geo-alt-fill"></i> Your state - {{ $account->state }}</div>
+              <div class="ba-hero-state">
+                <i class="bi bi-person-fill"></i>
+                {{ optional($staffMember)->name ?? 'Your Area' }}
+                @if ($staffMember)
+                  @php $covered = $staffMember->staffStates(); @endphp
+                  @if (count($covered))
+                    &mdash; {{ implode(', ', $covered) }}
+                  @endif
+                @endif
+              </div>
               <div class="ba-hero-bank">{{ $account->bank_name }}</div>
               <div class="ba-hero-name">{{ $account->account_name }}</div>
               <div class="ba-hero-num">
@@ -160,12 +169,10 @@
         @else
           <div class="ba-none" style="margin-bottom:24px;">
             <i class="bi bi-info-circle" style="font-size:1.4rem; display:block; margin-bottom:8px;"></i>
-            No bank account has been set up for <strong>{{ $user->state }}</strong> yet.
+            No bank account has been set up for your area yet.
             Please contact us directly to confirm payment details.
           </div>
         @endif
-
-        {{-- All accounts removed: customers and staff only see their own state --}}
 
       </main>
     </div>

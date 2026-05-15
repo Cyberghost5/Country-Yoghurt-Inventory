@@ -309,11 +309,29 @@ class DeliveryController extends Controller
         ]);
 
         // SMS to all super_admins
-        $delivery->loadMissing('allocations');
-        $total   = $delivery->totalAmount();
-        $message = "Goods of NGN " . number_format($total, 2) . " value has been delivered to you. - Country Yoghurt";
+        $delivery->loadMissing(['allocations.customer']);
+        $total       = $delivery->totalAmount();
+        $adminMsg    = "Delivery {$delivery->delivery_number} has been completed. Total value: NGN " . number_format($total, 2) . ". - Country Yoghurt";
         User::where('role', 'super_admin')->whereNotNull('phone')->get()
-            ->each(fn ($sa) => app(BulkSmsService::class)->send($sa->phone, $message));
+            ->each(fn ($sa) => app(BulkSmsService::class)->send($sa->phone, $adminMsg));
+
+        // SMS to each customer in this delivery
+        $smsService = app(BulkSmsService::class);
+        foreach ($delivery->allocations as $allocation) {
+            $customer = $allocation->customer;
+            if (!$customer || empty($customer->phone)) continue;
+
+            $remaining = $allocation->remainingAmount();
+            $balancePart = $remaining > 0
+                ? " Outstanding balance: NGN " . number_format($remaining, 2) . ". Please make payment at your earliest convenience."
+                : " Your account is fully paid up. Thank you!";
+
+            $customerMsg = "Hi {$customer->name}, your delivery ({$delivery->delivery_number}) of goods worth NGN "
+                . number_format((float) $allocation->total_amount, 2)
+                . " has been completed.{$balancePart} - Country Yoghurt";
+
+            $smsService->send($customer->phone, $customerMsg);
+        }
 
         return redirect()->route('deliveries.show', $delivery)
             ->with('status', "Delivery {$delivery->delivery_number} marked as completed.");

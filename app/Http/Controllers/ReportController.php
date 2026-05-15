@@ -256,6 +256,41 @@ class ReportController extends Controller
             'orders'  => $topProducts->take(8)->pluck('order_count')->map(fn ($v) => (int) $v)->values()->toArray(),
         ];
 
+        // ── Revenue vs Debt summary ──────────────────────────────────
+        $chartRevenueVsDebt = [
+            'labels' => ['Revenue Collected', 'Outstanding Debt'],
+            'data'   => [(float) $revenueTotal, $totalDebt],
+        ];
+
+        // ── Top 10 customers by outstanding debt ─────────────────────
+        $topDebtorsQ = DB::table('delivery_allocations')
+            ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
+            ->join('users', 'users.id', '=', 'delivery_allocations.customer_id')
+            ->whereIn('deliveries.status', ['dispatched', 'completed'])
+            ->leftJoinSub(
+                DB::table('payments')
+                    ->where('status', 'approved')
+                    ->select('delivery_allocation_id', DB::raw('SUM(amount) as paid'))
+                    ->groupBy('delivery_allocation_id'),
+                'ps', 'ps.delivery_allocation_id', '=', 'delivery_allocations.id'
+            )
+            ->whereRaw('delivery_allocations.total_amount > COALESCE(ps.paid, 0)')
+            ->select(
+                'users.id',
+                'users.name as customer_name',
+                DB::raw('SUM(delivery_allocations.total_amount - COALESCE(ps.paid, 0)) as remaining')
+            )
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('remaining');
+        if ($dateStart) $topDebtorsQ->where('deliveries.created_at', '>=', $dateStart);
+        if ($dateEnd)   $topDebtorsQ->where('deliveries.created_at', '<=', $dateEnd);
+        $topDebtors = $topDebtorsQ->limit(10)->get();
+
+        $chartTopDebtors = [
+            'labels' => $topDebtors->pluck('customer_name')->values()->toArray(),
+            'data'   => $topDebtors->pluck('remaining')->map(fn ($v) => (float) $v)->values()->toArray(),
+        ];
+
         return view('reports.index', compact(
             'user', 'range', 'fromInput', 'toInput', 'dateStart', 'dateEnd',
             'ordersTotal', 'ordersPending', 'ordersApproved', 'ordersDelivered',
@@ -266,7 +301,8 @@ class ReportController extends Controller
             'topProducts', 'topCustomers', 'ordersByState', 'staffPerformance',
             'recentOrders', 'recentDeliveries',
             'chartTimeSeries', 'chartOrderStatus', 'chartDeliveryStatus',
-            'chartPaymentMethod', 'chartProductRevenue'
+            'chartPaymentMethod', 'chartProductRevenue',
+            'chartRevenueVsDebt', 'chartTopDebtors', 'topDebtors'
         ));
     }
 

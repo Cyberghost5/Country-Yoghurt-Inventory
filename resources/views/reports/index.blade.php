@@ -220,11 +220,11 @@
         </div>
 
         {{-- Top products – full width with metric toggle --}}
-        <div class="rpt-card" style="margin-bottom:28px;">
+        <div class="rpt-card" style="margin-bottom:20px;">
           <div class="rpt-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>Top Products</span>
             <select id="productMetric" class="filter-select" style="font-size:0.82rem;padding:4px 10px;">
-              <option value="revenue">By Revenue (₦)</option>
+              <option value="revenue">By Revenue (&#8358;)</option>
               <option value="qty">By Quantity Sold</option>
               <option value="orders">By Order Count</option>
             </select>
@@ -232,6 +232,25 @@
           <div class="rpt-card-body" style="padding:16px;display:flex;justify-content:center;" id="chartProductRevenueWrap">
             <canvas id="chartProductRevenue" style="max-height:300px;max-width:480px;"></canvas>
           </div>
+        </div>
+
+        {{-- Revenue vs Debt + Top Debtors row --}}
+        <div class="rpt-two-col" style="margin-bottom:28px;">
+
+          <div class="rpt-card">
+            <div class="rpt-card-header">Revenue vs. Outstanding Debt</div>
+            <div class="rpt-card-body" style="padding:16px;display:flex;justify-content:center;" id="chartRevenueDebtWrap">
+              <canvas id="chartRevenueDebt" style="max-height:260px;max-width:260px;"></canvas>
+            </div>
+          </div>
+
+          <div class="rpt-card">
+            <div class="rpt-card-header">Top Debtors (by Outstanding Balance)</div>
+            <div class="rpt-card-body" style="padding:16px;" id="chartTopDebtorsWrap">
+              <canvas id="chartTopDebtors" style="max-height:280px;"></canvas>
+            </div>
+          </div>
+
         </div>
 
         {{-- ════════════════════════════════════════════════════════ --}}
@@ -683,8 +702,10 @@
       var STATUS_DATA     = { orders: @json($chartOrderStatus), deliveries: @json($chartDeliveryStatus) };
       var METHOD_DATA     = @json($chartPaymentMethod);
       var PRODUCT_DATA    = @json($chartProductRevenue);
+      var REV_DEBT_DATA   = @json($chartRevenueVsDebt);
+      var TOP_DEBTORS     = @json($chartTopDebtors);
 
-      var trendChart, statusChart, methodChart, productChart;
+      var trendChart, statusChart, methodChart, productChart, revenueDebtChart, topDebtorsChart;
 
       function resetCanvas(wrapId, canvasId, style) {
         document.getElementById(wrapId).innerHTML = '<canvas id="' + canvasId + '" style="' + style + '"></canvas>';
@@ -772,6 +793,60 @@
         });
       }
 
+      // ── Revenue vs Debt doughnut ─────────────────────────────────
+      function buildRevenueDebt() {
+        var total = REV_DEBT_DATA.data.reduce(function (a, b) { return a + b; }, 0);
+        if (revenueDebtChart) { revenueDebtChart.destroy(); revenueDebtChart = null; }
+        if (!total) { showEmpty('chartRevenueDebtWrap', 'No revenue or debt data for this period.'); return; }
+        var canvas = resetCanvas('chartRevenueDebtWrap', 'chartRevenueDebt', 'max-height:260px;max-width:260px;');
+        revenueDebtChart = new Chart(canvas, {
+          type: 'doughnut',
+          data: {
+            labels: REV_DEBT_DATA.labels,
+            datasets: [{ data: REV_DEBT_DATA.data, backgroundColor: ['#4e8c4a', '#ef4444'], borderWidth: 2 }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                    return ctx.label + ': ₦' + Number(ctx.parsed).toLocaleString() + ' (' + pct + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // ── Top debtors horizontal bar ───────────────────────────────
+      function buildTopDebtors() {
+        if (topDebtorsChart) { topDebtorsChart.destroy(); topDebtorsChart = null; }
+        if (!TOP_DEBTORS.data || !TOP_DEBTORS.data.length) { showEmpty('chartTopDebtorsWrap', 'No outstanding debt in this period.'); return; }
+        var canvas = resetCanvas('chartTopDebtorsWrap', 'chartTopDebtors', 'max-height:280px;');
+        topDebtorsChart = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: TOP_DEBTORS.labels,
+            datasets: [{ label: 'Outstanding Balance (₦)', data: TOP_DEBTORS.data, backgroundColor: '#ef4444', borderRadius: 4 }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: { callback: function (v) { return '₦' + Number(v).toLocaleString(); } }
+              }
+            }
+          }
+        });
+      }
+
       // ── Products pie ─────────────────────────────────────────────
       function buildProduct() {
         var metric = document.getElementById('productMetric').value;
@@ -808,6 +883,8 @@
       buildStatus();
       buildMethod();
       buildProduct();
+      buildRevenueDebt();
+      buildTopDebtors();
 
       // Wire controls
       document.getElementById('trendGroupBy').addEventListener('change', buildTrend);

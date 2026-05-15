@@ -78,7 +78,7 @@
               </label>
 
               <div style="grid-column: 1 / -1;" id="lgaSection">
-                <span style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Covered LGAs <span style="color:var(--text-soft); font-weight:400;">(optional — leave blank for all LGAs in selected states)</span></span>
+                <span style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Covered LGAs <span style="color:var(--text-soft); font-weight:400;">(optional - leave blank for all LGAs in selected states)</span></span>
                 <div id="lgaContainer" style="display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:#fafaf8; border:1px solid #e5e0d6; border-radius:8px; max-height:250px; overflow-y:auto;">
                   <span style="color:var(--text-soft); font-size:0.85rem;">Select at least one state above to see LGAs.</span>
                 </div>

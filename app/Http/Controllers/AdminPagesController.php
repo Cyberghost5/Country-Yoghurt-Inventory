@@ -184,9 +184,11 @@ class AdminPagesController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $user = $request->user();
+        $user          = $request->user();
+        $selectedState = $request->input('state');
 
-        $debtRows = DB::table('delivery_allocations')
+        // Load all unpaid delivery allocation rows
+        $allDebtRows = DB::table('delivery_allocations')
             ->join('deliveries', 'deliveries.id', '=', 'delivery_allocations.delivery_id')
             ->join('users', 'users.id', '=', 'delivery_allocations.customer_id')
             ->leftJoinSub(
@@ -215,8 +217,27 @@ class AdminPagesController extends Controller
             ->orderByDesc('outstanding')
             ->get();
 
-        $totalOutstanding = $debtRows->sum('outstanding');
+        // State-level summary (always unfiltered)
+        $debtByState = $allDebtRows
+            ->groupBy(fn ($row) => $row->state ?: 'Unknown')
+            ->map(fn ($rows, $state) => (object) [
+                'state'          => $state,
+                'total_debt'     => (float) $rows->sum('outstanding'),
+                'delivery_count' => $rows->count(),
+                'customer_count' => $rows->pluck('customer_id')->unique()->count(),
+            ])
+            ->sortByDesc('total_debt')
+            ->values();
 
-        return view('admin.debts-index', compact('user', 'debtRows', 'totalOutstanding'));
+        // Delivery rows filtered to selected state (or empty when on state-level view)
+        $debtRows = $selectedState
+            ? $allDebtRows->filter(fn ($r) => ($r->state ?: 'Unknown') === $selectedState)->values()
+            : collect();
+
+        $totalOutstanding = (float) $allDebtRows->sum('outstanding');
+
+        return view('admin.debts-index', compact(
+            'user', 'debtRows', 'totalOutstanding', 'debtByState', 'selectedState'
+        ));
     }
 }

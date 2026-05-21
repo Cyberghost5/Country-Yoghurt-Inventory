@@ -53,6 +53,11 @@
             @if ($user->isAdminOrStaff())
               <a href="{{ route('deliveries.edit', $delivery) }}" class="ghost-btn"><i class="bi bi-pencil"></i> Edit</a>
             @endif
+            @if ($user->role === 'super_admin')
+              <button type="button" class="ghost-btn" style="color:#dc2626;border-color:#dc2626;" onclick="document.getElementById('deleteDeliveryModal').style.display='flex'">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            @endif
             @if ($delivery->status === 'pending' && $user->isAdminOrStaff())
               <form method="POST" action="{{ route('deliveries.dispatch', $delivery) }}" style="display:inline;">
                 @csrf
@@ -101,6 +106,13 @@
             <div class="dlv-meta-label">Customers</div>
             <div class="dlv-meta-value">{{ $delivery->allocations->count() }}</div>
           </div>
+          @php
+            $totalQtySupplied = $delivery->allocations->sum(fn($a) => $a->items->sum('quantity'));
+          @endphp
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Total Qty Supplied</div>
+            <div class="dlv-meta-value">{{ number_format($totalQtySupplied) }}</div>
+          </div>
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Total Value</div>
             <div class="dlv-meta-value">&#8358;{{ number_format($delivery->totalAmount(), 2) }}</div>
@@ -117,6 +129,10 @@
           @else
           {{-- Customer: show only their own figures --}}
           @if ($myAlloc)
+          <div class="dlv-meta-item">
+            <div class="dlv-meta-label">Total Qty Supplied</div>
+            <div class="dlv-meta-value">{{ number_format($myAlloc->items->sum('quantity')) }}</div>
+          </div>
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Your Total</div>
             <div class="dlv-meta-value">&#8358;{{ number_format($myAlloc->total_amount, 2) }}</div>
@@ -241,6 +257,38 @@
       </main>
     </div>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @if ($user->role === 'super_admin')
+    {{-- Delete confirmation modal --}}
+    <div id="deleteDeliveryModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:12px; padding:28px 32px; max-width:420px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <span style="background:#fde8e8; color:#c0392b; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">
+            <i class="bi bi-trash"></i>
+          </span>
+          <div>
+            <h3 style="margin:0; font-size:1rem; font-weight:700;">Delete Delivery</h3>
+            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-soft);">This action cannot be undone.</p>
+          </div>
+        </div>
+        <p style="font-size:0.88rem; color:var(--text-main); margin-bottom:20px;">
+          You are about to permanently delete <strong>{{ $delivery->delivery_number }}</strong> along with all its allocations, items, and payment records. Are you sure?
+        </p>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="ghost-btn" onclick="document.getElementById('deleteDeliveryModal').style.display='none'">
+            Cancel
+          </button>
+          <form method="POST" action="{{ route('deliveries.destroy', $delivery) }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="primary-btn" style="background:#dc2626; border-color:#dc2626;">
+              <i class="bi bi-trash"></i> Yes, Delete Permanently
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    @endif
+
     <script>
       (function() {
         var sidebar  = document.getElementById('sidebar');

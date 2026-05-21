@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
     Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatch'])->name('deliveries.dispatch');
     Route::post('/deliveries/{delivery}/complete', [DeliveryController::class, 'markCompleted'])->name('deliveries.complete');
+    Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy'])->name('deliveries.destroy');
 
     /* ── Bank Accounts ── */
     Route::get('/admin/bank-accounts', [BankAccountController::class, 'index'])->name('admin.bank_accounts.index');

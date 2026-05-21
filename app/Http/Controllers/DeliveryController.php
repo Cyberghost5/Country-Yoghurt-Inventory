@@ -364,6 +364,27 @@ class DeliveryController extends Controller
         })->filter(fn ($a) => (float) $a['remaining'] > 0)->values());
     }
 
+    /* ── Destroy (super_admin only) ── */
+    public function destroy(Request $request, Delivery $delivery)
+    {
+        $user = $request->user();
+        if ($user->role !== 'super_admin') abort(403);
+
+        $deliveryNumber = $delivery->delivery_number;
+
+        DB::transaction(function () use ($delivery) {
+            foreach ($delivery->allocations as $alloc) {
+                $alloc->payments()->delete();
+                $alloc->items()->delete();
+            }
+            $delivery->allocations()->delete();
+            $delivery->delete();
+        });
+
+        return redirect()->route('deliveries.index')
+            ->with('status', "Delivery {$deliveryNumber} has been permanently deleted.");
+    }
+
     /* ── Private ── */
 
     private function generateDeliveryNumber(): string

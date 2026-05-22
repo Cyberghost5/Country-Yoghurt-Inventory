@@ -1767,6 +1767,78 @@ tbody td {
   flex-wrap: wrap;
 }
 
+.pag-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.pag-summary {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+.pag-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-main);
+  text-decoration: none;
+  line-height: 1;
+  transition: background 0.13s, border-color 0.13s, color 0.13s;
+}
+
+.pag-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.pag-btn--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  cursor: default;
+}
+
+.pag-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pag-btn--dots {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: default;
+  pointer-events: none;
+}
+
+.pag-btn i {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
 /* -- Order meta grid (show page) -- */
 .ord-meta-grid {
   display: grid;

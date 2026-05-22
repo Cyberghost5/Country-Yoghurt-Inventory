@@ -158,12 +158,7 @@
             </table>
           </div>
 
-          {{-- Pagination --}}
-          @if ($orders->hasPages())
-            <div class="ord-pagination">
-              {{ $orders->links() }}
-            </div>
-          @endif
+          {{ $orders->links() }}
         </section>
 
       </main>

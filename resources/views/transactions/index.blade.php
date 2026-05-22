@@ -170,12 +170,7 @@
           </div>
         @endif
 
-        {{-- Pagination --}}
-        @if ($transactions->hasPages())
-          <div style="margin-top:16px;">
-            {{ $transactions->links() }}
-          </div>
-        @endif
+        {{ $transactions->links() }}
 
       </main>
     </div>

@@ -133,11 +133,7 @@
             </table>
           </div>
 
-          @if ($payments->hasPages())
-            <div class="ord-pagination">
-              {{ $payments->links() }}
-            </div>
-          @endif
+          {{ $payments->links() }}
         </section>
 
       </main>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Delivery;
 use App\Models\DeliveryAllocation;
+use App\Models\DeliveryAllocationItem;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\BulkSmsService;
@@ -373,10 +375,15 @@ class DeliveryController extends Controller
         $deliveryNumber = $delivery->delivery_number;
 
         DB::transaction(function () use ($delivery) {
-            foreach ($delivery->allocations as $alloc) {
-                $alloc->payments()->delete();
-                $alloc->items()->delete();
-            }
+            $allocationIds = $delivery->allocations()->pluck('id');
+
+            // Delete all payments linked to any allocation in this delivery
+            Payment::whereIn('delivery_allocation_id', $allocationIds)->delete();
+
+            // Delete all allocation items
+            DeliveryAllocationItem::whereIn('delivery_allocation_id', $allocationIds)->delete();
+
+            // Delete allocations, then the delivery itself
             $delivery->allocations()->delete();
             $delivery->delete();
         });

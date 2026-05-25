@@ -98,14 +98,45 @@ class PaymentController extends Controller
         return view('payments.create', compact('user', 'order', 'payableOrders', 'customers'));
     }
 
+    /* ── Create form for a delivery allocation ── */
+    public function createForAllocation(Request $request, DeliveryAllocation $allocation)
+    {
+        $user = $request->user();
+
+        // Customers can only pay their own allocation
+        if ($user->role === 'customer' && $allocation->customer_id !== $user->id) {
+            abort(403);
+        }
+
+        // Staff scope check
+        if ($user->role === 'staff') {
+            $stateCustomerIds = User::where('role', 'customer')
+                ->whereIn('state', $user->staffStates())
+                ->pluck('id');
+            if (!$stateCustomerIds->contains($allocation->customer_id)) {
+                abort(403);
+            }
+        }
+
+        if ($allocation->isFullyPaid()) {
+            return redirect()->route('deliveries.show', $allocation->delivery_id)
+                ->with('error', 'This allocation is already fully paid.');
+        }
+
+        $allocation->load(['delivery', 'customer', 'items', 'payments']);
+
+        return view('payments.delivery-pay', compact('user', 'allocation'));
+    }
+
     /* ── Store ── */
     public function store(Request $request)
     {
         $user = $request->user();
 
         $request->validate([
-            'payment_type'           => 'required|in:order,other',
+            'payment_type'           => 'required|in:order,delivery,other',
             'order_id'               => 'nullable|integer|exists:orders,id',
+            'delivery_allocation_id' => 'nullable|integer|exists:delivery_allocations,id',
             'customer_id'            => 'nullable|integer|exists:users,id',
             'reason'                 => 'nullable|string|max:1000',
             'amount'                 => 'required|numeric|min:0.01',
@@ -115,8 +146,9 @@ class PaymentController extends Controller
             'notes'                  => 'nullable|string|max:1000',
         ]);
 
-        $type  = $request->input('payment_type');
-        $order = null;
+        $type       = $request->input('payment_type');
+        $order      = null;
+        $allocation = null;
 
         if ($type === 'order' && $request->filled('order_id')) {
             $order = Order::findOrFail($request->input('order_id'));
@@ -131,6 +163,16 @@ class PaymentController extends Controller
             if (round((float) $request->input('amount'), 2) > $remaining) {
                 return back()->withInput()->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . ' on this order.']);
             }
+        } elseif ($type === 'delivery' && $request->filled('delivery_allocation_id')) {
+            $allocation = DeliveryAllocation::findOrFail($request->input('delivery_allocation_id'));
+            if ($user->role === 'customer' && $allocation->customer_id !== $user->id) abort(403);
+            if ($allocation->isFullyPaid()) {
+                return back()->withInput()->withErrors(['delivery_allocation_id' => 'This allocation is already fully paid.']);
+            }
+            $remaining = $allocation->remainingAmount();
+            if (round((float) $request->input('amount'), 2) > $remaining) {
+                return back()->withInput()->withErrors(['amount' => 'Amount exceeds the remaining balance of ₦' . number_format($remaining, 2) . '.']);
+            }
         } elseif ($type === 'other' && !$request->filled('reason')) {
             return back()->withInput()->withErrors(['reason' => 'A reason is required for a standalone payment.']);
         }
@@ -140,6 +182,8 @@ class PaymentController extends Controller
         if ($user->isAdminOrStaff()) {
             if ($order) {
                 $paymentOwnerId = $order->user_id;
+            } elseif ($allocation) {
+                $paymentOwnerId = $allocation->customer_id;
             } elseif ($request->filled('customer_id')) {
                 $customer = User::where('role', 'customer')
                     ->when($user->role === 'staff', fn ($q) => $q->whereIn('state', $user->staffStates()))
@@ -155,7 +199,7 @@ class PaymentController extends Controller
 
         $payment = Payment::create([
             'order_id'               => $order?->id,
-            'delivery_allocation_id' => null,
+            'delivery_allocation_id' => $allocation?->id,
             'user_id'                => $paymentOwnerId,
             'payment_number'         => $this->generatePaymentNumber(),
             'amount'                 => round((float) $request->input('amount'), 2),
@@ -169,7 +213,7 @@ class PaymentController extends Controller
 
         $adminUser = User::whereIn('role', ['admin', 'super_admin'])->first();
         if ($adminUser) {
-            $payment->loadMissing('order');
+            $payment->loadMissing(['order', 'deliveryAllocation']);
             $adminUser->notify(new PaymentNotification('submitted', $payment));
         }
 

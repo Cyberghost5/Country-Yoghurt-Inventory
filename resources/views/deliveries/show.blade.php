@@ -249,6 +249,15 @@
                 @endforeach
               </div>
             @endif
+
+            {{-- Pay button --}}
+            @if (!$fullyPaid && in_array($delivery->status, ['dispatched', 'completed']))
+              <div style="margin-top:12px; text-align:right;">
+                <a href="{{ route('payments.delivery.create', $alloc) }}" class="primary-btn" style="font-size:0.85rem; padding:6px 14px;">
+                  <i class="bi bi-cash-coin"></i> Record Payment
+                </a>
+              </div>
+            @endif
           </div>
         @empty
           <p style="color:var(--text-soft);">No allocation found.</p>

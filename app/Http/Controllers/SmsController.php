@@ -123,6 +123,51 @@ class SmsController extends Controller
         return view('admin.sms.show', compact('user', 'smsLog'));
     }
 
+    // ─── Retry Failed ─────────────────────────────────────────────────────────
+
+    public function retry(SmsLog $smsLog, Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (!$user->isAdmin()) abort(403);
+
+        $failedRecipients = $smsLog->recipients()->where('status', 'failed')->get();
+
+        if ($failedRecipients->isEmpty()) {
+            return redirect()->route('admin.sms.show', $smsLog)
+                ->with('status', 'No failed recipients to retry.');
+        }
+
+        $sent = $smsLog->sent_count;
+        $message = $smsLog->message;
+
+        foreach ($failedRecipients as $rcpt) {
+            $success = $this->sms->send($rcpt->phone, $message);
+            if ($success) {
+                $rcpt->update(['status' => 'sent']);
+                $sent++;
+            }
+        }
+
+        $totalFailed = $smsLog->recipients()->where('status', 'failed')->count();
+
+        $status = match (true) {
+            $totalFailed === 0 => 'completed',
+            $sent === 0        => 'failed',
+            default            => 'partial',
+        };
+
+        $smsLog->update([
+            'sent_count'   => $sent,
+            'failed_count' => $totalFailed,
+            'status'       => $status,
+        ]);
+
+        $newlySent = $failedRecipients->count() - $totalFailed;
+
+        return redirect()->route('admin.sms.show', $smsLog)
+            ->with('status', "Retried failed recipients. {$newlySent} message(s) sent successfully, {$totalFailed} still failed.");
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private function resolveRecipients(string $type, array $ids): \Illuminate\Support\Collection

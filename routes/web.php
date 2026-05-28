@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/sms/create', [SmsController::class, 'create'])->name('admin.sms.create');
     Route::post('/admin/sms', [SmsController::class, 'store'])->name('admin.sms.send');
     Route::get('/admin/sms/{smsLog}', [SmsController::class, 'show'])->name('admin.sms.show');
+    Route::post('/admin/sms/{smsLog}/retry', [SmsController::class, 'retry'])->name('admin.sms.retry');
 
     /* ── AJAX helpers ── */
     Route::get('/ajax/customers', [UserManagementController::class, 'ajaxCustomers'])->name('ajax.customers');

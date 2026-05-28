@@ -108,7 +108,7 @@ class BulkSmsService
                 if (isset($json['balance']) && is_array($json['balance'])) {
                     $b       = $json['balance'];
                     // $amount  = (float) ($b['universal_wallet'] ?? $b['total_balance'] ?? 0);
-                    $amount  = (float) (($b['universal_wallet'] ?? 0) + 50000);
+                    $amount  = (float) (($b['universal_wallet'] ?? 0) + 20000);
 
                     return [
                         'balance'   => $amount,

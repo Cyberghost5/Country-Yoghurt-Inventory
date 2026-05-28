@@ -43,8 +43,23 @@
             <button onclick="window.print()" class="ghost-btn">
               <i class="bi bi-printer"></i> Print
             </button>
+            @if ($smsLog->failed_count > 0)
+              <form action="{{ route('admin.sms.retry', $smsLog) }}" method="POST" style="display: inline;">
+                @csrf
+                <button type="submit" class="primary-btn">
+                  <i class="bi bi-arrow-clockwise"></i> Retry Failed
+                </button>
+              </form>
+            @endif
           </div>
         </header>
+
+        {{-- ── Alerts ───────────────────────────────────────────────────── --}}
+        @if (session('status'))
+          <div class="lp-success no-print" style="margin-bottom: 14px;">
+            <i class="bi bi-check-circle"></i> {{ session('status') }}
+          </div>
+        @endif
 
         {{-- ── Summary cards ────────────────────────────────────────────── --}}
         <div class="sms-detail-meta">

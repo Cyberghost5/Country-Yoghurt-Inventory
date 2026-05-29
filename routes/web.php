@@ -30,6 +30,9 @@ Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showForm'])->name('password.reset');
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
+/* ── Public Legal Pages ── */
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy.policy');
+
 /* ── Protected ── */
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

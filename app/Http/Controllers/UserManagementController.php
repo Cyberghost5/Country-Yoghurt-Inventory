@@ -203,7 +203,7 @@ class UserManagementController extends Controller
 
     public function impersonate(Request $request, User $user)
     {
-        if (!$request->user()->isAdmin()) abort(403);
+        if ($request->user()->role !== 'super_admin') abort(403);
         if ($request->user()->id === $user->id) abort(422, 'You cannot impersonate yourself.');
         if (session('impersonating_admin_id')) abort(422, 'Already impersonating a user. Stop first.');
 

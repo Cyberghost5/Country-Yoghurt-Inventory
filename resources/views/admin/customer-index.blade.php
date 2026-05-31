@@ -86,6 +86,8 @@
                       <a href="{{ route('customers.show', $row->id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a>
                       @if ($user->isAdmin())
                         <a href="{{ route('users.edit', $row->id) }}" class="ua-btn ua-edit"><i class="bi bi-pencil"></i> Edit</a>
+                      @endif
+                      @if ($user->role === 'super_admin')
                         <form method="POST" action="{{ route('users.impersonate', $row->id) }}" style="display:inline">
                           @csrf
                           <button type="submit" class="ua-btn ua-imp"><i class="bi bi-person-fill-gear"></i> Impersonate</button>

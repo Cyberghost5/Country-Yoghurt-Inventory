@@ -73,7 +73,7 @@
                     <td>{{ optional($row->created_at)->format('d M Y') }}</td>
                     <td class="user-actions">
                       <a href="{{ route('users.edit', $row->id) }}" class="ua-btn ua-edit"><i class="bi bi-pencil"></i> Edit</a>
-                      @if ($row->id !== $user->id)
+                      @if ($user->role === 'super_admin' && $row->id !== $user->id)
                         <form method="POST" action="{{ route('users.impersonate', $row->id) }}" style="display:inline">
                           @csrf
                           <button type="submit" class="ua-btn ua-imp"><i class="bi bi-person-fill-gear"></i> Impersonate</button>

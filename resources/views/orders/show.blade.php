@@ -142,7 +142,7 @@
                   <tr>
                     <td>{{ $item->product_name }}</td>
                     <td>{{ number_format($item->unit_price, 2) }}</td>
-                    <td>{{ $item->quantity }}</td>
+                    <td>{{ $item->quantity + 0 }}</td>
                     <td class="ord-amount">{{ number_format($item->subtotal, 2) }}</td>
                   </tr>
                 @endforeach

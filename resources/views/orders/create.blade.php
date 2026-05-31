@@ -102,7 +102,7 @@
                   <div class="ord-item-field ord-item-qty">
                     <label>Qty</label>
                     <input type="number" name="items[0][quantity]"
-                           class="inv-field-input qty-input" min="1" value="1" required />
+                           class="inv-field-input qty-input" min="0.01" step="0.01" value="1" required />
                   </div>
 
                   <div class="ord-item-field ord-item-subtotal">
@@ -224,7 +224,7 @@
             </div>
             <div class="ord-item-field ord-item-qty">
               <label>Qty</label>
-              <input type="number" name="items[${rowIndex}][quantity]" class="inv-field-input qty-input" min="1" value="1" required />
+              <input type="number" name="items[${rowIndex}][quantity]" class="inv-field-input qty-input" min="0.01" step="0.01" value="1" required />
             </div>
             <div class="ord-item-field ord-item-subtotal">
               <label>Subtotal (₦)</label>
@@ -250,7 +250,7 @@
 
         function updateRow() {
           const price = parseFloat(priceInput.value) || 0;
-          const qty   = parseInt(qtyInput.value) || 0;
+          const qty   = parseFloat(qtyInput.value) || 0;
           const sub   = price * qty;
           subEl.value = sub > 0 ? formatNum(sub) : '';
           recalcTotal();

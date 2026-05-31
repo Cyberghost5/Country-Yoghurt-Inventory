@@ -18,6 +18,7 @@ class OrderItem extends Model
 
     protected $casts = [
         'unit_price' => 'decimal:2',
+        'quantity'   => 'decimal:2',
         'subtotal'   => 'decimal:2',
     ];
 

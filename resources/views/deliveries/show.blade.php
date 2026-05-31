@@ -111,7 +111,7 @@
           @endphp
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Total Qty Supplied</div>
-            <div class="dlv-meta-value">{{ number_format($totalQtySupplied) }}</div>
+            <div class="dlv-meta-value">{{ number_format($totalQtySupplied, (float)$totalQtySupplied == (int)$totalQtySupplied ? 0 : 2) }}</div>
           </div>
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Total Value</div>
@@ -131,7 +131,8 @@
           @if ($myAlloc)
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Total Qty Supplied</div>
-            <div class="dlv-meta-value">{{ number_format($myAlloc->items->sum('quantity')) }}</div>
+            @php $myQtySum = $myAlloc ? $myAlloc->items->sum('quantity') : 0; @endphp
+            <div class="dlv-meta-value">{{ number_format($myQtySum, (float)$myQtySum == (int)$myQtySum ? 0 : 2) }}</div>
           </div>
           <div class="dlv-meta-item">
             <div class="dlv-meta-label">Your Total</div>
@@ -227,7 +228,7 @@
                   <tr>
                     <td>{{ $item->product_name }}</td>
                     <td>&#8358;{{ number_format($item->unit_price, 2) }}</td>
-                    <td>{{ $item->quantity }}</td>
+                    <td>{{ $item->quantity + 0 }}</td>
                     <td>&#8358;{{ number_format($item->subtotal, 2) }}</td>
                   </tr>
                 @endforeach

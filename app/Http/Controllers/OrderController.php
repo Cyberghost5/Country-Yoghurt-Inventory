@@ -81,11 +81,11 @@ class OrderController extends Controller
     {
         $request->validate([
             'product_id' => 'required|integer|exists:products,id',
-            'quantity'   => 'required|integer|min:1',
+            'quantity'   => 'required|numeric|min:0.01',
         ]);
 
         $product = Product::findOrFail($request->integer('product_id'));
-        $qty     = $request->integer('quantity');
+        $qty     = (float) $request->input('quantity');
 
         return response()->json([
             'available' => $product->quantity >= $qty,
@@ -136,7 +136,7 @@ class OrderController extends Controller
         $request->validate([
             'items'                  => 'required|array|min:1',
             'items.*.product_name'   => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
-            'items.*.quantity'       => 'required|integer|min:1',
+            'items.*.quantity'       => 'required|numeric|min:0.01',
             'notes'                  => 'nullable|string|max:1000',
             'customer_id'            => 'nullable|integer|exists:users,id',
         ]);
@@ -160,7 +160,7 @@ class OrderController extends Controller
         $totalAmount = 0;
 
         foreach ($rawItems as $item) {
-            $qty      = (int) $item['quantity'];
+            $qty      = (float) $item['quantity'];
             $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
             $subtotal = round($price * $qty, 2);
             $itemRecords[] = [

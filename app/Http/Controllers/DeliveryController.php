@@ -102,7 +102,7 @@ class DeliveryController extends Controller
             'customers.*.allocation_date'               => 'nullable|date',
             'customers.*.items'                         => 'required|array|min:1',
             'customers.*.items.*.product_name'          => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
-            'customers.*.items.*.quantity'              => 'required|integer|min:1',
+            'customers.*.items.*.quantity'              => 'required|numeric|min:0.01',
         ]);
 
         $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
@@ -131,7 +131,7 @@ class DeliveryController extends Controller
 
                 foreach ($cData['items'] as $item) {
                     $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
-                    $qty      = (int) $item['quantity'];
+                    $qty      = (float) $item['quantity'];
                     $subtotal = round($price * $qty, 2);
                     $customerTotal += $subtotal;
                     $itemRecords[] = [
@@ -211,7 +211,7 @@ class DeliveryController extends Controller
             'customers.*.allocation_date'               => 'nullable|date',
             'customers.*.items'                         => 'required|array|min:1',
             'customers.*.items.*.product_name'          => ['required', 'string', 'max:255', Rule::exists('products', 'name')],
-            'customers.*.items.*.quantity'              => 'required|integer|min:1',
+            'customers.*.items.*.quantity'              => 'required|numeric|min:0.01',
         ]);
 
         $scheduledAt = $request->input('scheduled_at') ?: now()->toDateString();
@@ -244,7 +244,7 @@ class DeliveryController extends Controller
 
                 foreach ($cData['items'] as $item) {
                     $price    = round((float) ($priceMap[trim($item['product_name'])] ?? 0), 2);
-                    $qty      = (int) $item['quantity'];
+                    $qty      = (float) $item['quantity'];
                     $subtotal = round($price * $qty, 2);
                     $customerTotal += $subtotal;
                     $itemRecords[] = [

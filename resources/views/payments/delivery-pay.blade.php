@@ -98,7 +98,7 @@
                 <tr style="border-bottom:1px solid #f0ece4;">
                   <td style="padding:6px 8px;">{{ $item->product_name }}</td>
                   <td style="padding:6px 8px; text-align:right;">&#8358;{{ number_format($item->unit_price, 2) }}</td>
-                  <td style="padding:6px 8px; text-align:right;">{{ $item->quantity }}</td>
+                  <td style="padding:6px 8px; text-align:right;">{{ $item->quantity + 0 }}</td>
                   <td style="padding:6px 8px; text-align:right;">&#8358;{{ number_format($item->subtotal, 2) }}</td>
                 </tr>
               @endforeach

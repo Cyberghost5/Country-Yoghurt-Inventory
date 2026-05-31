@@ -173,7 +173,7 @@
                   @foreach ($alloc->items as $item)
                     <tr>
                       <td style="padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->product_name ?? $item->product->name ?? '-' }}</td>
-                      <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->quantity }}</td>
+                      <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">{{ $item->quantity + 0 }}</td>
                       <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->unit_price, 2) }}</td>
                       <td style="text-align:right;padding:6px 10px;border-bottom:1px solid #f0ece4;">₦{{ number_format($item->quantity * $item->unit_price, 2) }}</td>
                     </tr>

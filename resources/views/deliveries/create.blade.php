@@ -153,7 +153,7 @@
         return '<tr data-item="' + ii + '">' +
           '<td><select name="customers[' + ci + '][items][' + ii + '][product_name]" class="form-input product-name-select" required>' + buildProductOptions() + '</select></td>' +
           '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][unit_price]" class="form-input item-price" placeholder="0.00" step="0.01" min="0.01" readonly style="background:#f5f3ef; cursor:default;" /></td>' +
-          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="1" required /></td>' +
+          '<td><input type="number" name="customers[' + ci + '][items][' + ii + '][quantity]" class="form-input item-qty" placeholder="1" min="0.01" step="0.01" required /></td>' +
           '<td><input type="number" class="form-input item-subtotal" placeholder="0.00" readonly tabindex="-1" /></td>' +
           '<td><button type="button" class="remove-btn remove-item-btn" title="Remove row"><i class="bi bi-trash3"></i></button></td>' +
           '</tr>';
@@ -312,7 +312,7 @@
           price._bound = true;
           function calcRow() {
             var p = parseFloat(price.value) || 0;
-            var q = parseInt(qty.value) || 0;
+            var q = parseFloat(qty.value) || 0;
             sub.value = (p * q).toFixed(2);
             recalcCustomer(section);
             recalcGrand();

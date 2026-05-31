@@ -26,7 +26,7 @@ class Product extends Model
     protected $casts = [
         'cost_price'    => 'decimal:2',
         'selling_price' => 'decimal:2',
-        'quantity'      => 'integer',
+        'quantity'      => 'decimal:2',
         'reorder_level' => 'integer',
     ];
 

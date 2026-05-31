@@ -74,10 +74,10 @@ class InventoryController extends Controller
         $this->ensureAdminOrStaff($request);
 
         $data = $request->validate([
-            'adjustment' => 'required|integer',
+            'adjustment' => 'required|numeric',
         ]);
 
-        $newQty = max(0, $product->quantity + $data['adjustment']);
+        $newQty = max(0, $product->quantity + (float) $data['adjustment']);
         $product->update(['quantity' => $newQty]);
 
         return redirect()->route('admin.inventory.index')

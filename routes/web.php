@@ -98,6 +98,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');
     Route::post('/payments/{payment}/reject', [PaymentController::class, 'reject'])->name('payments.reject');
+    Route::post('/payments/{payment}/cancel-approval', [PaymentController::class, 'cancelApproval'])->name('payments.cancelApproval');
+    Route::delete('/admin/payments/rejected', [PaymentController::class, 'clearRejected'])->name('payments.clearRejected');
     Route::get('/users/create-staff', [UserManagementController::class, 'createStaff'])->name('users.create.staff');
     Route::post('/users/staff', [UserManagementController::class, 'storeStaff'])->name('users.store.staff');
     Route::get('/users/create-admin', [UserManagementController::class, 'createAdmin'])->name('users.create.admin');
@@ -110,6 +112,7 @@ Route::middleware('auth')->group(function () {
     /* ── User Edit & Impersonation ── */
     Route::get('/users/{user}/edit', [UserManagementController::class, 'editUser'])->name('users.edit');
     Route::put('/users/{user}', [UserManagementController::class, 'updateUser'])->name('users.update');
+    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
     Route::post('/users/{user}/impersonate', [UserManagementController::class, 'impersonate'])->name('users.impersonate');
     Route::post('/impersonate/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonate.stop');
 
@@ -119,6 +122,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/sms', [SmsController::class, 'store'])->name('admin.sms.send');
     Route::get('/admin/sms/{smsLog}', [SmsController::class, 'show'])->name('admin.sms.show');
     Route::post('/admin/sms/{smsLog}/retry', [SmsController::class, 'retry'])->name('admin.sms.retry');
+    Route::post('/admin/sms/toggle', [SmsController::class, 'toggle'])->name('admin.sms.toggle');
+    Route::get('/admin/system/reset', [UserManagementController::class, 'showResetForm'])->name('admin.system.reset.show');
+    Route::post('/admin/system/reset', [UserManagementController::class, 'resetSystem'])->name('admin.system.reset.perform');
 
     /* ── AJAX helpers ── */
     Route::get('/ajax/customers', [UserManagementController::class, 'ajaxCustomers'])->name('ajax.customers');

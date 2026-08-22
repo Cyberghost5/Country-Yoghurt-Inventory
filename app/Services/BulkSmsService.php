@@ -22,6 +22,11 @@ class BulkSmsService
      */
     public function send(string $to, string $message): bool
     {
+        if (\App\Models\Setting::get('sms_enabled', '1') !== '1') {
+            Log::info("BulkSMS: suppressed (SMS disabled globally). to: {$to}, msg: {$message}");
+            return true;
+        }
+
         if (empty($this->token)) {
             Log::warning('BulkSMS: API token not configured. SMS not sent.');
             return false;

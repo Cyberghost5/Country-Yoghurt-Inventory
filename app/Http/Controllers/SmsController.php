@@ -170,6 +170,20 @@ class SmsController extends Controller
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
+    /* ── Toggle SMS Sending globally (admin only) ── */
+    public function toggle(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (!$user->isAdmin()) abort(403);
+
+        $enabled = $request->has('sms_enabled') ? '1' : '0';
+        \App\Models\Setting::set('sms_enabled', $enabled);
+
+        $statusMsg = $enabled === '1' ? 'SMS sending has been enabled globally.' : 'SMS sending has been disabled globally.';
+
+        return back()->with('status', $statusMsg);
+    }
+
     private function resolveRecipients(string $type, array $ids): \Illuminate\Support\Collection
     {
         $base = User::whereNotNull('phone')->where('phone', '!=', '');

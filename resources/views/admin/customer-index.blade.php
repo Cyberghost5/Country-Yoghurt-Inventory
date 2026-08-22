@@ -22,6 +22,12 @@
       <main class="main-content">
         <header class="topbar"><div class="title-block"><h2>Customer Directory</h2><p>All customer records with shop and location details.</p></div></header>
 
+        @if (session('status'))
+          <div class="lp-success" style="margin-bottom: 14px; background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-check-circle-fill" style="color: #10b981;"></i> {{ session('status') }}
+          </div>
+        @endif
+
         {{-- Filters --}}
         <form method="GET" action="{{ route('admin.customers.index') }}" class="card" style="padding:16px 20px; margin-bottom:16px;">
           <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
@@ -86,6 +92,13 @@
                       <a href="{{ route('customers.show', $row->id) }}" class="ua-btn ua-view"><i class="bi bi-eye"></i> View</a>
                       @if ($user->isAdmin())
                         <a href="{{ route('users.edit', $row->id) }}" class="ua-btn ua-edit"><i class="bi bi-pencil"></i> Edit</a>
+                        <form method="POST" action="{{ route('users.destroy', $row->id) }}" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this customer? This will also permanently delete all associated orders, payments, and delivery allocations. This action cannot be undone.');">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="ua-btn ua-danger" style="background:#dc2626; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; height: 32px;">
+                            <i class="bi bi-trash"></i> Delete
+                          </button>
+                        </form>
                       @endif
                       @if ($user->role === 'super_admin')
                         <form method="POST" action="{{ route('users.impersonate', $row->id) }}" style="display:inline">

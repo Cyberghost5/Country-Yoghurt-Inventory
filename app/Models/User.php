@@ -63,4 +63,19 @@ class User extends Authenticatable
         }
         return $this->lga ? [$this->lga] : [];
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'user_id');
+    }
+
+    public function deliveryAllocations()
+    {
+        return $this->hasMany(DeliveryAllocation::class, 'customer_id');
+    }
 }

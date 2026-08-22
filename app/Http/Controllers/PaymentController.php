@@ -87,15 +87,23 @@ class PaymentController extends Controller
 
         // Orders the current user can pay (for direct customer use)
         $payableOrders = collect();
+        $payableAllocations = collect();
         if ($user->role === 'customer') {
             $payableOrders = Order::whereIn('status', ['approved', 'delivered'])
                 ->where('user_id', $user->id)
                 ->whereRaw('total_amount > COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.order_id = orders.id AND p.status = ?), 0)', ['approved'])
                 ->orderByDesc('created_at')
                 ->get(['id', 'order_number', 'total_amount', 'status']);
+
+            $payableAllocations = DeliveryAllocation::with(['delivery', 'payments' => fn ($q) => $q->where('status', 'approved')])
+                ->where('customer_id', $user->id)
+                ->whereHas('delivery', fn ($q) => $q->where('status', 'dispatched'))
+                ->get()
+                ->filter(fn ($a) => $a->remainingAmount() > 0)
+                ->values();
         }
 
-        return view('payments.create', compact('user', 'order', 'payableOrders', 'customers'));
+        return view('payments.create', compact('user', 'order', 'payableOrders', 'payableAllocations', 'customers'));
     }
 
     /* ── Create form for a delivery allocation ── */
@@ -246,6 +254,18 @@ class PaymentController extends Controller
             }
         }
 
+        if ($payment->delivery_allocation_id) {
+            $payment->load([
+                'deliveryAllocation.delivery',
+                'deliveryAllocation.customer',
+                'deliveryAllocation.items',
+                'deliveryAllocation.payments',
+                'user',
+                'reviewer'
+            ]);
+            return view('payments.show-delivery', compact('user', 'payment'));
+        }
+
         $payment->load(['order', 'user', 'reviewer']);
 
         return view('payments.show', compact('user', 'payment'));
@@ -331,5 +351,43 @@ class PaymentController extends Controller
 
         return redirect()->route('payments.show', $payment)
             ->with('status', 'Payment rejected.');
+    }
+
+    /* ── Cancel Approval (admin only) ── */
+    public function cancelApproval(Request $request, Payment $payment)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin()) abort(403);
+
+        if ($payment->status !== 'approved') {
+            return redirect()->route('payments.show', $payment)
+                ->with('error', 'Only approved payments can have their approval cancelled.');
+        }
+
+        $payment->update([
+            'status'      => 'pending',
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+        ]);
+
+        // Notify super admins about this cancellation
+        $cancellerName = $user->name;
+        User::where('role', 'super_admin')->get()
+            ->each(fn ($sa) => $sa->notify(new PaymentNotification('cancelled', $payment, $cancellerName)));
+
+        return redirect()->route('payments.show', $payment)
+            ->with('status', 'Payment approval cancelled successfully. Status is back to pending.');
+    }
+
+    /* ── Clear Rejected Payments (admin only) ── */
+    public function clearRejected(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin()) abort(403);
+
+        $deletedCount = Payment::where('status', 'rejected')->delete();
+
+        return redirect()->route('payments.index')
+            ->with('status', "Successfully cleared {$deletedCount} rejected payment record(s).");
     }
 }

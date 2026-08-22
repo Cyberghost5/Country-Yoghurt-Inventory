@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UserManagementController extends Controller
@@ -358,5 +359,86 @@ class UserManagementController extends Controller
                 'lga' => 'Selected LGA is invalid for the selected state.',
             ]);
         }
+    }
+
+    public function destroy(Request $request, User $user)
+    {
+        $actor = $request->user();
+        if (!$actor->isAdmin()) abort(403);
+        if ($actor->id === $user->id) abort(403, 'You cannot delete yourself.');
+
+        DB::transaction(function () use ($user) {
+            // Delete payments
+            $user->payments()->delete();
+
+            // Delete delivery allocations and their items
+            foreach ($user->deliveryAllocations as $alloc) {
+                $alloc->items()->delete();
+                $alloc->delete();
+            }
+
+            // Delete orders and their items
+            foreach ($user->orders as $order) {
+                $order->items()->delete();
+                $order->delete();
+            }
+
+            // Delete the user record
+            $user->delete();
+        });
+
+        $roleLabel = ucfirst($user->role);
+        return redirect()->route('admin.customers.index')
+            ->with('status', "{$roleLabel} account '{$user->name}' and all associated records deleted successfully.");
+    }
+
+    /* ── System Reset Form (super_admin only) ── */
+    public function showResetForm(Request $request)
+    {
+        if ($request->user()->role !== 'super_admin') abort(403);
+
+        return view('admin.system-reset', [
+            'user' => $request->user(),
+        ]);
+    }
+
+    /* ── Reset System Data (super_admin only) ── */
+    public function resetSystem(Request $request)
+    {
+        if ($request->user()->role !== 'super_admin') abort(403);
+
+        $request->validate([
+            'reset_code' => 'required|string',
+        ]);
+
+        $expectedCode = env('APP_RESET_CODE', 'CountryYoghurtReset2026');
+
+        if ($request->input('reset_code') !== $expectedCode) {
+            throw ValidationException::withMessages([
+                'reset_code' => 'The provided security reset code is incorrect.',
+            ]);
+        }
+
+        DB::transaction(function () {
+            // Delete all transactional records in dependency order
+            DB::table('sms_log_recipients')->delete();
+            DB::table('sms_logs')->delete();
+            DB::table('payments')->delete();
+            DB::table('delivery_allocation_items')->delete();
+            DB::table('delivery_allocations')->delete();
+            DB::table('deliveries')->delete();
+            DB::table('order_items')->delete();
+            DB::table('orders')->delete();
+            DB::table('products')->delete();
+            DB::table('bank_accounts')->delete();
+            DB::table('notifications')->delete();
+            
+            // Delete all other users except the current active super admin user
+            $activeUserId = Auth::id();
+            DB::table('users')->where('id', '!=', $activeUserId)->delete();
+        });
+
+        return redirect()->route('dashboard')
+            ->with('status', 'System has been successfully wiped and reset. Only your Super Admin account remains.');
     }
 }

@@ -56,10 +56,10 @@
 
         <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" id="paymentForm">
           @csrf
-          <input type="hidden" name="payment_type" value="order" />
 
           {{-- When order is pre-selected: skip all selectors, just show locked summary --}}
           @if ($order)
+            <input type="hidden" name="payment_type" value="order" />
             <input type="hidden" name="order_id" value="{{ $order->id }}" />
             @php $preRemaining = $order->remainingAmount(); @endphp
             <section class="card" style="margin-bottom: 16px; padding: 16px 20px;">
@@ -91,6 +91,23 @@
             </section>
 
           @else
+            <input type="hidden" name="payment_type" id="payment_type" value="order" />
+
+            {{-- Link Target Selector --}}
+            <section class="card" style="margin-bottom: 16px;">
+              <h3 class="ord-section-title" style="margin-bottom: 16px;">
+                <i class="bi bi-link-45deg"></i> Link Payment To
+              </h3>
+              <div class="pay-form-field">
+                <label class="inv-field-label" for="link_target">Select Target</label>
+                <select id="link_target" name="link_target" class="inv-select">
+                  <option value="order" {{ old('link_target', 'order') === 'order' ? 'selected' : '' }}>Order</option>
+                  <option value="delivery" {{ old('link_target') === 'delivery' ? 'selected' : '' }}>Delivery Run</option>
+                  <option value="none" {{ old('link_target') === 'none' ? 'selected' : '' }}>None (Standalone / Other)</option>
+                </select>
+              </div>
+            </section>
+
             {{-- Customer selector (staff / admin only, no pre-selected order) --}}
             @if ($user->isAdminOrStaff())
             <section class="card" style="margin-bottom: 16px;">
@@ -119,51 +136,101 @@
             </section>
             @endif
 
-            <section class="card" style="margin-bottom: 16px;">
-              <h3 class="ord-section-title" style="margin-bottom: 16px;">
-                <i class="bi bi-bag"></i> Link to Order
-                <small style="font-weight:400; font-size:0.78rem; color:var(--text-soft);">(optional)</small>
-              </h3>
-              <div class="pay-form-field">
-                <label class="inv-field-label" for="order_id">Order</label>
-                @if ($user->isAdminOrStaff())
-                  <select id="order_id" name="order_id" class="inv-select">
-                    <option value="">- Select a customer first -</option>
-                  </select>
-                @else
-                  <select id="order_id" name="order_id" class="inv-select">
-                    <option value="">- No specific order (use Reason below) -</option>
-                    @foreach ($payableOrders as $o)
-                      @php $remaining = round((float)$o->total_amount - $o->paidAmount(), 2); @endphp
-                      <option value="{{ $o->id }}"
-                              data-amount="{{ number_format((float)$o->total_amount, 2, '.', '') }}"
-                              data-remaining="{{ number_format($remaining, 2, '.', '') }}"
-                              data-number="{{ $o->order_number }}"
-                              {{ (old('order_id') == $o->id) ? 'selected' : '' }}>
-                        {{ $o->order_number }} - ₦{{ number_format($remaining, 2) }} remaining ({{ ucfirst($o->status) }})
-                      </option>
-                    @endforeach
-                  </select>
-                @endif
-                @error('order_id')
-                  <span class="inv-field-error">{{ $message }}</span>
-                @enderror
-              </div>
-              <div id="orderSummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
-                <div class="pay-summary-row">
-                  <span>Order</span>
-                  <strong id="summaryNumber">-</strong>
+            <div id="orderSelectorContainer">
+              <section class="card" style="margin-bottom: 16px;">
+                <h3 class="ord-section-title" style="margin-bottom: 16px;">
+                  <i class="bi bi-bag"></i> Link to Order
+                  <small style="font-weight:400; font-size:0.78rem; color:var(--text-soft);">(optional)</small>
+                </h3>
+                <div class="pay-form-field">
+                  <label class="inv-field-label" for="order_id">Order</label>
+                  @if ($user->isAdminOrStaff())
+                    <select id="order_id" name="order_id" class="inv-select">
+                      <option value="">- Select a customer first -</option>
+                    </select>
+                  @else
+                    <select id="order_id" name="order_id" class="inv-select">
+                      <option value="">- No specific order (use Reason below) -</option>
+                      @foreach ($payableOrders as $o)
+                        @php $remaining = round((float)$o->total_amount - $o->paidAmount(), 2); @endphp
+                        <option value="{{ $o->id }}"
+                                data-amount="{{ number_format((float)$o->total_amount, 2, '.', '') }}"
+                                data-remaining="{{ number_format($remaining, 2, '.', '') }}"
+                                data-number="{{ $o->order_number }}"
+                                {{ (old('order_id') == $o->id) ? 'selected' : '' }}>
+                          {{ $o->order_number }} - ₦{{ number_format($remaining, 2) }} remaining ({{ ucfirst($o->status) }})
+                        </option>
+                      @endforeach
+                    </select>
+                  @endif
+                  @error('order_id')
+                    <span class="inv-field-error">{{ $message }}</span>
+                  @enderror
                 </div>
-                <div class="pay-summary-row">
-                  <span>Order Total</span>
-                  <strong id="summaryAmount">-</strong>
+                <div id="orderSummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
+                  <div class="pay-summary-row">
+                    <span>Order</span>
+                    <strong id="summaryNumber">-</strong>
+                  </div>
+                  <div class="pay-summary-row">
+                    <span>Order Total</span>
+                    <strong id="summaryAmount">-</strong>
+                  </div>
+                  <div class="pay-summary-row pay-summary-total">
+                    <span>Remaining Balance</span>
+                    <strong id="summaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
+                  </div>
                 </div>
-                <div class="pay-summary-row pay-summary-total">
-                  <span>Remaining Balance</span>
-                  <strong id="summaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
+              </section>
+            </div>
+
+            <div id="deliverySelectorContainer" style="display:none;">
+              <section class="card" style="margin-bottom: 16px;">
+                <h3 class="ord-section-title" style="margin-bottom: 16px;">
+                  <i class="bi bi-truck"></i> Link to Delivery Run
+                  <small style="font-weight:400; font-size:0.78rem; color:var(--text-soft);">(optional)</small>
+                </h3>
+                <div class="pay-form-field">
+                  <label class="inv-field-label" for="delivery_allocation_id">Delivery Run</label>
+                  @if ($user->isAdminOrStaff())
+                    <select id="delivery_allocation_id" name="delivery_allocation_id" class="inv-select">
+                      <option value="">- Select a customer first -</option>
+                    </select>
+                  @else
+                    <select id="delivery_allocation_id" name="delivery_allocation_id" class="inv-select">
+                      <option value="">- No specific delivery (use Reason below) -</option>
+                      @foreach ($payableAllocations as $a)
+                        @php $remaining = $a->remainingAmount(); @endphp
+                        <option value="{{ $a->id }}"
+                                data-amount="{{ number_format((float)$a->total_amount, 2, '.', '') }}"
+                                data-remaining="{{ number_format($remaining, 2, '.', '') }}"
+                                data-number="{{ $a->delivery->delivery_number ?? 'DLV-#' . $a->id }}"
+                                {{ (old('delivery_allocation_id') == $a->id) ? 'selected' : '' }}>
+                          {{ $a->delivery->delivery_number ?? 'DLV-#' . $a->id }} - ₦{{ number_format($remaining, 2) }} remaining
+                        </option>
+                      @endforeach
+                    </select>
+                  @endif
+                  @error('delivery_allocation_id')
+                    <span class="inv-field-error">{{ $message }}</span>
+                  @enderror
                 </div>
-              </div>
-            </section>
+                <div id="deliverySummary" style="display:none; margin-top:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
+                  <div class="pay-summary-row">
+                    <span>Delivery Run</span>
+                    <strong id="delSummaryNumber">-</strong>
+                  </div>
+                  <div class="pay-summary-row">
+                    <span>Delivery Total</span>
+                    <strong id="delSummaryAmount">-</strong>
+                  </div>
+                  <div class="pay-summary-row pay-summary-total">
+                    <span>Remaining Balance</span>
+                    <strong id="delSummaryRemaining" style="color:var(--danger, #dc2626);">-</strong>
+                  </div>
+                </div>
+              </section>
+            </div>
           @endif
 
           <section class="card" style="margin-bottom: 16px;">
@@ -261,6 +328,7 @@
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       const CY_AJAX_ORDERS_URL = '{{ route('ajax.customerOrders') }}';
+      const CY_AJAX_DELIVERIES_URL = '{{ route('ajax.customerAllocations') }}';
       const CY_CSRF            = '{{ csrf_token() }}';
       const CY_IS_STAFF_ADMIN  = {{ $user->isAdminOrStaff() ? 'true' : 'false' }};
     </script>
@@ -279,14 +347,51 @@
 
       var customerSelect = document.getElementById('customer_id');
       var orderSelect   = document.getElementById('order_id');
+      var deliverySelect = document.getElementById('delivery_allocation_id');
+      var targetSelect  = document.getElementById('link_target');
+      var paymentType   = document.getElementById('payment_type');
+      
+      var orderContainer = document.getElementById('orderSelectorContainer');
+      var deliveryContainer = document.getElementById('deliverySelectorContainer');
+
       var amountInput   = document.getElementById('amount');
+      
       var summary       = document.getElementById('orderSummary');
       var sumNumber     = document.getElementById('summaryNumber');
       var sumAmount     = document.getElementById('summaryAmount');
       var sumRemaining  = document.getElementById('summaryRemaining');
+
+      var delSummary       = document.getElementById('deliverySummary');
+      var delSumNumber     = document.getElementById('delSummaryNumber');
+      var delSumAmount     = document.getElementById('delSummaryAmount');
+      var delSumRemaining  = document.getElementById('delSummaryRemaining');
+
       var reasonInput   = document.getElementById('reason');
       var reasonReqMark = document.getElementById('reasonReqMark');
       var reasonHint    = document.getElementById('reasonHint');
+
+      function onTargetChange() {
+        if (!targetSelect) return;
+        var val = targetSelect.value;
+        if (val === 'order') {
+          if (orderContainer) orderContainer.style.display = '';
+          if (deliveryContainer) deliveryContainer.style.display = 'none';
+          if (paymentType) paymentType.value = 'order';
+          onOrderChange();
+        } else if (val === 'delivery') {
+          if (orderContainer) orderContainer.style.display = 'none';
+          if (deliveryContainer) deliveryContainer.style.display = '';
+          if (paymentType) paymentType.value = 'delivery';
+          onDeliveryChange();
+        } else {
+          if (orderContainer) orderContainer.style.display = 'none';
+          if (deliveryContainer) deliveryContainer.style.display = 'none';
+          if (paymentType) paymentType.value = 'other';
+          if (reasonInput) reasonInput.required = true;
+          if (reasonReqMark) reasonReqMark.style.display = '';
+          if (reasonHint) reasonHint.textContent = '(required when no target is selected)';
+        }
+      }
 
       function populatePaymentOrders(orders) {
         if (!orderSelect) return;
@@ -305,12 +410,31 @@
         onOrderChange();
       }
 
+      function populatePaymentDeliveries(allocations) {
+        if (!deliverySelect) return;
+        deliverySelect.innerHTML = '<option value="">- No specific delivery (use Reason below) -</option>';
+        if (allocations && allocations.length) {
+          allocations.forEach(function(a) {
+            var opt = document.createElement('option');
+            opt.value = a.id;
+            opt.dataset.amount    = a.total_amount;
+            opt.dataset.remaining = a.remaining;
+            opt.dataset.number    = a.delivery_number;
+            opt.textContent = a.label;
+            deliverySelect.appendChild(opt);
+          });
+        }
+        onDeliveryChange();
+      }
+
       if (customerSelect) {
         customerSelect.addEventListener('change', function() {
           var cid = this.value;
           if (!cid) {
             if (orderSelect) orderSelect.innerHTML = '<option value="">- Select a customer first -</option>';
+            if (deliverySelect) deliverySelect.innerHTML = '<option value="">- Select a customer first -</option>';
             if (summary) summary.style.display = 'none';
+            if (delSummary) delSummary.style.display = 'none';
             return;
           }
           fetch(CY_AJAX_ORDERS_URL + '?customer_id=' + cid + '&filter=payable', {
@@ -318,11 +442,18 @@
           })
           .then(function(r) { return r.json(); })
           .then(function(orders) { populatePaymentOrders(orders); });
+
+          fetch(CY_AJAX_DELIVERIES_URL + '?customer_id=' + cid, {
+            headers: { 'X-CSRF-TOKEN': CY_CSRF, 'Accept': 'application/json' }
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(allocations) { populatePaymentDeliveries(allocations); });
         });
       }
 
       function onOrderChange() {
-        var opt = orderSelect ? orderSelect.options[orderSelect.selectedIndex] : null;
+        if (!orderSelect) return;
+        var opt = orderSelect.options[orderSelect.selectedIndex];
         if (opt && opt.value) {
           if (sumNumber)    sumNumber.textContent    = opt.dataset.number;
           if (sumAmount)    sumAmount.textContent    = '₦' + opt.dataset.amount;
@@ -335,9 +466,34 @@
           if (reasonHint)    reasonHint.textContent = '(optional when an order is selected)';
         } else {
           if (summary) summary.style.display = 'none';
-          if (reasonInput)   reasonInput.required = true;
-          if (reasonReqMark) reasonReqMark.style.display = '';
-          if (reasonHint)    reasonHint.textContent = '(required when no order is selected)';
+          if (targetSelect && targetSelect.value === 'order') {
+            if (reasonInput)   reasonInput.required = true;
+            if (reasonReqMark) reasonReqMark.style.display = '';
+            if (reasonHint)    reasonHint.textContent = '(required when no order is selected)';
+          }
+        }
+      }
+
+      function onDeliveryChange() {
+        if (!deliverySelect) return;
+        var opt = deliverySelect.options[deliverySelect.selectedIndex];
+        if (opt && opt.value) {
+          if (delSumNumber)    delSumNumber.textContent    = opt.dataset.number;
+          if (delSumAmount)    delSumAmount.textContent    = '₦' + opt.dataset.amount;
+          if (delSumRemaining) delSumRemaining.textContent = '₦' + (opt.dataset.remaining || opt.dataset.amount);
+          if (delSummary)      delSummary.style.display   = '';
+          var fillAmount = opt.dataset.remaining || opt.dataset.amount;
+          if (amountInput && !amountInput.dataset.userEdited) amountInput.value = fillAmount;
+          if (reasonInput)   reasonInput.required = false;
+          if (reasonReqMark) reasonReqMark.style.display = 'none';
+          if (reasonHint)    reasonHint.textContent = '(optional when a delivery run is selected)';
+        } else {
+          if (delSummary) delSummary.style.display = 'none';
+          if (targetSelect && targetSelect.value === 'delivery') {
+            if (reasonInput)   reasonInput.required = true;
+            if (reasonReqMark) reasonReqMark.style.display = '';
+            if (reasonHint)    reasonHint.textContent = '(required when no delivery is selected)';
+          }
         }
       }
 
@@ -346,7 +502,13 @@
       }
       if (orderSelect) {
         orderSelect.addEventListener('change', onOrderChange);
-        onOrderChange();
+      }
+      if (deliverySelect) {
+        deliverySelect.addEventListener('change', onDeliveryChange);
+      }
+      if (targetSelect) {
+        targetSelect.addEventListener('change', onTargetChange);
+        onTargetChange();
       }
 
       var uploadArea  = document.getElementById('uploadArea');

@@ -183,17 +183,43 @@
               <i class="bi bi-shield-check"></i> Review Payment
             </p>
             <div class="ord-action-btns">
-              <form method="POST" action="{{ route('payments.approve', $payment) }}" style="display:inline;">
-                @csrf
-                <button type="submit" class="primary-btn">
-                  <i class="bi bi-check-lg"></i> Approve Payment
-                </button>
-              </form>
+              <button type="button" class="primary-btn" id="openApproveBtn">
+                <i class="bi bi-check-lg"></i> Approve Payment
+              </button>
               <button type="button" class="ghost-btn danger-ghost" id="openRejectBtn">
                 <i class="bi bi-x-lg"></i> Reject Payment
               </button>
             </div>
           </section>
+
+          {{-- Approve modal --}}
+          <div class="inv-modal-overlay" id="approveModal">
+            <div class="inv-modal inv-modal-sm">
+              <div class="inv-modal-head">
+                <h3><i class="bi bi-check-circle" style="color:var(--success, #16a34a)"></i> Approve Payment</h3>
+                <button class="inv-modal-close" onclick="closeApproveModal()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <form method="POST" action="{{ route('payments.approve', $payment) }}">
+                @csrf
+                <div class="inv-modal-body">
+                  <p style="font-size:0.88rem; color:var(--text-main); margin-bottom:12px;">
+                    Are you sure you want to approve this payment of <strong>₦{{ number_format($payment->amount, 2) }}</strong>?
+                  </p>
+                  <p style="font-size:0.82rem; color:var(--text-soft); margin:0;">
+                    This action will update the outstanding balance and cannot be undone.
+                  </p>
+                </div>
+                <div class="inv-modal-footer">
+                  <button type="button" class="ghost-btn" onclick="closeApproveModal()">Cancel</button>
+                  <button type="submit" class="primary-btn" style="background:var(--success, #16a34a); border-color:var(--success, #16a34a);">
+                    Yes, Approve
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
 
           {{-- Reject modal --}}
           <div class="inv-modal-overlay" id="rejectModal">
@@ -219,6 +245,51 @@
                 <div class="inv-modal-footer">
                   <button type="button" class="ghost-btn" onclick="closeRejectModal()">Cancel</button>
                   <button type="submit" class="primary-btn" style="background:var(--danger)">Reject</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        @endif
+
+        @if ($user->isAdmin() && $payment->status === 'approved')
+          <section class="card ord-action-bar" style="border-left: 4px solid var(--danger, #dc2626);">
+            <p class="ord-action-title">
+              <i class="bi bi-exclamation-triangle" style="color:var(--danger, #dc2626)"></i> Cancel Approval
+            </p>
+            <p style="font-size:0.85rem; color:var(--text-soft); margin-bottom:14px;">
+              This payment has been approved. If this was done by mistake, you can cancel the approval to set its status back to pending.
+            </p>
+            <div class="ord-action-btns">
+              <button type="button" class="primary-btn" id="openCancelApprovalBtn" style="background:var(--danger, #dc2626); border-color:var(--danger, #dc2626);">
+                <i class="bi bi-x-circle"></i> Cancel Approval
+              </button>
+            </div>
+          </section>
+
+          {{-- Cancel Approval Modal --}}
+          <div class="inv-modal-overlay" id="cancelApprovalModal">
+            <div class="inv-modal inv-modal-sm">
+              <div class="inv-modal-head">
+                <h3><i class="bi bi-exclamation-triangle" style="color:var(--danger, #dc2626)"></i> Cancel Approval</h3>
+                <button class="inv-modal-close" onclick="closeCancelApprovalModal()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <form method="POST" action="{{ route('payments.cancelApproval', $payment) }}">
+                @csrf
+                <div class="inv-modal-body">
+                  <p style="font-size:0.88rem; color:var(--text-main); margin-bottom:12px;">
+                    Are you sure you want to cancel the approval for this payment of <strong>₦{{ number_format($payment->amount, 2) }}</strong>?
+                  </p>
+                  <p style="font-size:0.82rem; color:var(--text-soft); margin:0;">
+                    This will set the status back to **Pending** and update balances automatically.
+                  </p>
+                </div>
+                <div class="inv-modal-footer">
+                  <button type="button" class="ghost-btn" onclick="closeCancelApprovalModal()">Cancel</button>
+                  <button type="submit" class="primary-btn" style="background:var(--danger, #dc2626); border-color:var(--danger, #dc2626);">
+                    Yes, Cancel Approval
+                  </button>
                 </div>
               </form>
             </div>
@@ -255,6 +326,36 @@
       }
       function closeRejectModal() {
         if (rejectModal) { rejectModal.classList.remove('active'); document.body.style.overflow = ''; }
+      }
+
+      var approveModal = document.getElementById('approveModal');
+      var openApproveBtn = document.getElementById('openApproveBtn');
+      if (openApproveBtn) {
+        openApproveBtn.addEventListener('click', function() {
+          approveModal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+        approveModal.addEventListener('click', function(e) {
+          if (e.target === approveModal) closeApproveModal();
+        });
+      }
+      function closeApproveModal() {
+        if (approveModal) { approveModal.classList.remove('active'); document.body.style.overflow = ''; }
+      }
+
+      var cancelApprovalModal = document.getElementById('cancelApprovalModal');
+      var openCancelApprovalBtn = document.getElementById('openCancelApprovalBtn');
+      if (openCancelApprovalBtn) {
+        openCancelApprovalBtn.addEventListener('click', function() {
+          cancelApprovalModal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+        cancelApprovalModal.addEventListener('click', function(e) {
+          if (e.target === cancelApprovalModal) closeCancelApprovalModal();
+        });
+      }
+      function closeCancelApprovalModal() {
+        if (cancelApprovalModal) { cancelApprovalModal.classList.remove('active'); document.body.style.overflow = ''; }
       }
     </script>
   </body>

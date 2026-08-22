@@ -27,7 +27,18 @@
             <h2>SMS Broadcast</h2>
             <p>Send and track bulk SMS messages to users.</p>
           </div>
-          <div class="top-actions">
+          <div class="top-actions" style="display:flex; align-items:center; gap:16px;">
+            <form method="POST" action="{{ route('admin.sms.toggle') }}" id="toggleSmsForm" style="display:flex; align-items:center; gap:8px; background:var(--surface); padding:6px 12px; border:1px solid var(--border); border-radius:10px;">
+              @csrf
+              <label class="inv-field-label" style="margin:0; font-size:0.85rem; font-weight:600; cursor:pointer;" for="sms_enabled_checkbox">
+                SMS Sending:
+              </label>
+              @php $smsEnabled = \App\Models\Setting::get('sms_enabled', '1') === '1'; @endphp
+              <input type="checkbox" name="sms_enabled" id="sms_enabled_checkbox" value="1" {{ $smsEnabled ? 'checked' : '' }} onchange="document.getElementById('toggleSmsForm').submit()" style="width:18px; height:18px; cursor:pointer;" />
+              <span style="font-size:0.85rem; font-weight:600; color: {{ $smsEnabled ? 'var(--primary)' : 'var(--text-soft)' }}">
+                {{ $smsEnabled ? 'Active' : 'Deactive' }}
+              </span>
+            </form>
             <a href="{{ route('admin.sms.create') }}" class="primary-btn">
               <i class="bi bi-send"></i> Compose SMS
             </a>

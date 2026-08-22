@@ -64,6 +64,7 @@ class PaymentNotification extends Notification
             'rejected'       => "Your payment of {$amount} {$ref} has been rejected." .
                                ($this->payment->rejection_reason ? " Reason: {$this->payment->rejection_reason}" : ''),
             'admin_approved' => "{$this->approverName} approved a payment of {$amount} {$ref}.",
+            'cancelled'      => "{$this->approverName} cancelled the approval of payment {$this->payment->payment_number} ({$amount}).",
             default          => "Payment of {$amount} status updated.",
         };
     }
@@ -77,6 +78,7 @@ class PaymentNotification extends Notification
             'approved'       => "Payment of {$amount} Approved",
             'rejected'       => "Payment of {$amount} Rejected",
             'admin_approved' => "Payment of {$amount} Approved by Admin",
+            'cancelled'      => "Payment of {$amount} Approval Cancelled",
             default          => "Payment Updated",
         };
     }

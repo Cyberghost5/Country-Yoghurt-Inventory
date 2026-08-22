@@ -22,7 +22,7 @@ class DeliveryController extends Controller
 
         if ($user->role === 'customer') {
             // Customers only see deliveries they have an allocation in
-            $query = Delivery::with(['staff', 'allocations'])
+            $query = Delivery::with(['staff', 'allocations.customer'])
                 ->whereHas('allocations', fn ($q) => $q->where('customer_id', $user->id))
                 ->latest();
 
@@ -45,7 +45,7 @@ class DeliveryController extends Controller
 
         if (!$user->isAdminOrStaff()) abort(403);
 
-        $query = Delivery::with(['staff', 'allocations'])->latest();
+        $query = Delivery::with(['staff', 'allocations.customer'])->latest();
 
         if ($user->role === 'staff') {
             $query->where('staff_id', $user->id);
@@ -231,14 +231,20 @@ class DeliveryController extends Controller
                 'notes'        => $request->input('notes'),
             ]);
 
-            // Delete existing allocations and items
-            foreach ($delivery->allocations as $alloc) {
-                $alloc->items()->delete();
-            }
-            $delivery->allocations()->delete();
+            $existingAllocations = $delivery->allocations->keyBy('customer_id');
+            $newCustomerIds = collect($request->input('customers'))->pluck('customer_id')->map(fn($id) => (int)$id)->toArray();
 
-            // Re-create allocations
+            // 1. Delete allocations (and their items) of customers who are no longer included
+            foreach ($existingAllocations as $customerId => $alloc) {
+                if (!in_array($customerId, $newCustomerIds, true)) {
+                    $alloc->items()->delete();
+                    $alloc->delete(); // Automatically triggers nullOnDelete for payments
+                }
+            }
+
+            // 2. Loop through customers to update or create allocations
             foreach ($request->input('customers') as $cData) {
+                $customerId = (int) $cData['customer_id'];
                 $customerTotal = 0;
                 $itemRecords   = [];
 
@@ -255,14 +261,26 @@ class DeliveryController extends Controller
                     ];
                 }
 
-                $allocation = $delivery->allocations()->create([
-                    'customer_id'     => (int) $cData['customer_id'],
-                    'total_amount'    => round($customerTotal, 2),
-                    'notes'           => $cData['notes'] ?? null,
-                    'allocation_date' => $cData['allocation_date'] ?? $scheduledAt,
-                ]);
-
-                $allocation->items()->createMany($itemRecords);
+                if ($existingAllocations->has($customerId)) {
+                    // Update existing allocation, keeping database ID intact so payments remain linked
+                    $allocation = $existingAllocations->get($customerId);
+                    $allocation->update([
+                        'total_amount'    => round($customerTotal, 2),
+                        'notes'           => $cData['notes'] ?? null,
+                        'allocation_date' => $cData['allocation_date'] ?? $scheduledAt,
+                    ]);
+                    $allocation->items()->delete();
+                    $allocation->items()->createMany($itemRecords);
+                } else {
+                    // Create new allocation
+                    $allocation = $delivery->allocations()->create([
+                        'customer_id'     => $customerId,
+                        'total_amount'    => round($customerTotal, 2),
+                        'notes'           => $cData['notes'] ?? null,
+                        'allocation_date' => $cData['allocation_date'] ?? $scheduledAt,
+                    ]);
+                    $allocation->items()->createMany($itemRecords);
+                }
             }
         });
 

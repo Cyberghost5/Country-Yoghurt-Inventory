@@ -136,6 +136,12 @@ $_pendingDeliveries = match($_u->role) {
        class="nav-link nav-link-anchor {{ request()->routeIs('admin.bank_accounts.*') ? 'active' : '' }}">
       <i class="bi bi-bank nav-icon"></i>Bank Accounts
     </a>
+    @if ($user->role === 'super_admin')
+      <a href="{{ route('admin.system.reset.show') }}"
+         class="nav-link nav-link-anchor {{ request()->routeIs('admin.system.reset.*') ? 'active' : '' }}" style="color:var(--danger, #dc2626);">
+        <i class="bi bi-trash-fill nav-icon" style="color:var(--danger, #dc2626);"></i>System Reset
+      </a>
+    @endif
   @endif
 
   @php $notifCount = auth()->user()?->unreadNotifications()->count() ?? 0; @endphp

@@ -26,13 +26,18 @@
             <h2>Payments</h2>
             <p>{{ $user->isAdmin() ? 'All payment submissions' : 'Your payment submissions' }}</p>
           </div>
-          @if (in_array($user->role, ['staff', 'customer'], true))
-            <div class="top-actions">
+          <div class="top-actions">
+            @if ($user->isAdmin() && $counts['rejected'] > 0)
+              <button type="button" class="primary-btn danger-btn" onclick="openClearRejectedModal()" style="background:var(--danger, #dc2626); border-color:var(--danger, #dc2626);">
+                <i class="bi bi-trash"></i> Clear Rejected
+              </button>
+            @endif
+            @if (in_array($user->role, ['staff', 'customer'], true))
               <button type="button" class="primary-btn" onclick="openPayTypeModal()">
                 <i class="bi bi-plus-lg"></i> New Payment
               </button>
-            </div>
-          @endif
+            @endif
+          </div>
         </header>
 
         {{-- Alerts --}}
@@ -174,6 +179,36 @@
       </div>
     </div>
 
+    @if ($user->isAdmin() && $counts['rejected'] > 0)
+      {{-- Clear Rejected Confirmation Modal --}}
+      <div class="inv-modal-overlay" id="clearRejectedModal" onclick="if(event.target===this)closeClearRejectedModal()">
+        <div class="inv-modal inv-modal-sm" style="max-width:440px;">
+          <div class="inv-modal-head">
+            <h3><i class="bi bi-exclamation-triangle" style="color:var(--danger, #dc2626)"></i> Clear Rejected</h3>
+            <button class="inv-modal-close" onclick="closeClearRejectedModal()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <form method="POST" action="{{ route('payments.clearRejected') }}">
+            @csrf
+            @method('DELETE')
+            <div class="inv-modal-body" style="padding: 20px;">
+              <p style="font-size:0.88rem; color:var(--text-main); margin-bottom:12px;">
+                Are you sure you want to permanently clear all <strong>{{ $counts['rejected'] }}</strong> rejected payment records?
+              </p>
+              <p style="font-size:0.82rem; color:var(--text-soft); margin:0;">
+                This action cannot be undone and will delete the records from the database.
+              </p>
+            </div>
+            <div class="inv-modal-footer">
+              <button type="button" class="ghost-btn" onclick="closeClearRejectedModal()">Cancel</button>
+              <button type="submit" class="primary-btn" style="background:var(--danger, #dc2626); border-color:var(--danger, #dc2626);">
+                Yes, Clear All
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    @endif
+
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <script>
       (function() {
@@ -195,6 +230,21 @@
       function closePayTypeModal() {
         document.getElementById('payTypeModal').classList.remove('active');
         document.body.style.overflow = '';
+      }
+
+      function openClearRejectedModal() {
+        var m = document.getElementById('clearRejectedModal');
+        if (m) {
+          m.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+      function closeClearRejectedModal() {
+        var m = document.getElementById('clearRejectedModal');
+        if (m) {
+          m.classList.remove('active');
+          document.body.style.overflow = '';
+        }
       }
     </script>
   </body>

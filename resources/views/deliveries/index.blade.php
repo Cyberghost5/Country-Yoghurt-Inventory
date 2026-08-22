@@ -70,8 +70,10 @@
                   <th>Delivery #</th>
                   @if ($user->isAdmin())<th>Staff</th>@endif
                   <th>Date</th>
+                  <th>Distributor(s)</th>
                   <th>Customers</th>
                   <th>Total Value (&#8358;)</th>
+                  <th>Total Outstanding (&#8358;)</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
@@ -84,8 +86,26 @@
                       <td>{{ $delivery->staff->name ?? '-' }}</td>
                     @endif
                     <td>{{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : $delivery->created_at->format('d M Y') }}</td>
+                    <td>
+                      @php
+                        $names = $delivery->allocations->map(function($a) {
+                            $name = $a->customer->name ?? '-';
+                            if (!empty($a->customer->shop_name)) {
+                                $name .= ' (' . $a->customer->shop_name . ')';
+                            }
+                            return $name;
+                        })->unique()->implode(', ');
+                      @endphp
+                      {{ $names ?: '-' }}
+                    </td>
                     <td>{{ $delivery->allocations->count() }}</td>
                     <td class="ord-amount">{{ number_format($delivery->totalAmount(), 2) }}</td>
+                    @php
+                      $outstanding = $delivery->allocations->sum(fn($a) => $a->remainingAmount());
+                    @endphp
+                    <td class="ord-amount" style="color: {{ $outstanding > 0 ? '#dc2626' : '#16a34a' }}; font-weight: 600;">
+                      {{ number_format($outstanding, 2) }}
+                    </td>
                     <td>
                       <span class="status-badge {{ $delivery->status_css }}">{{ $delivery->status_label }}</span>
                     </td>
@@ -97,7 +117,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="{{ $user->isAdmin() ? 7 : 6 }}" style="text-align:center; padding:32px; color:var(--text-soft);">
+                    <td colspan="{{ $user->isAdmin() ? 9 : 8 }}" style="text-align:center; padding:32px; color:var(--text-soft);">
                       <i class="bi bi-truck" style="font-size:1.5rem; display:block; margin-bottom:8px;"></i>
                       No deliveries found.
                     </td>

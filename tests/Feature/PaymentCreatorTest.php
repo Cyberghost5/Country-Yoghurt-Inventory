@@ -14,8 +14,8 @@ class PaymentCreatorTest extends TestCase
     public function test_payment_tracks_creator_and_displays_it_in_list_and_details_views(): void
     {
         // 1. Arrange: Create customer, staff, and admin users
-        $customer = User::factory()->create(['role' => 'customer', 'name' => 'John Customer']);
-        $staff    = User::factory()->create(['role' => 'staff', 'name' => 'Sarah Staff']);
+        $customer = User::factory()->create(['role' => 'customer', 'name' => 'John Customer', 'state' => 'Lagos']);
+        $staff    = User::factory()->create(['role' => 'staff', 'name' => 'Sarah Staff', 'state' => 'Lagos', 'staff_states' => ['Lagos']]);
         $admin    = User::factory()->create(['role' => 'admin', 'name' => 'Albert Admin']);
 
         // Log in as staff to post a payment on behalf of customer

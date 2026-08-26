@@ -70,7 +70,6 @@
                   <th>Delivery #</th>
                   @if ($user->isAdmin())<th>Staff</th>@endif
                   <th>Date</th>
-                  <th>Distributor(s)</th>
                   <th>Customers</th>
                   <th>Total Value (&#8358;)</th>
                   <th>Total Outstanding (&#8358;)</th>
@@ -86,18 +85,6 @@
                       <td>{{ $delivery->staff->name ?? '-' }}</td>
                     @endif
                     <td>{{ $delivery->scheduled_at ? $delivery->scheduled_at->format('d M Y') : $delivery->created_at->format('d M Y') }}</td>
-                    <td>
-                      @php
-                        $names = $delivery->allocations->map(function($a) {
-                            $name = $a->customer->name ?? '-';
-                            if (!empty($a->customer->shop_name)) {
-                                $name .= ' (' . $a->customer->shop_name . ')';
-                            }
-                            return $name;
-                        })->unique()->implode(', ');
-                      @endphp
-                      {{ $names ?: '-' }}
-                    </td>
                     <td>{{ $delivery->allocations->count() }}</td>
                     <td class="ord-amount">{{ number_format($delivery->totalAmount(), 2) }}</td>
                     @php

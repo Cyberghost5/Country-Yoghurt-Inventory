@@ -18,7 +18,7 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $query = Payment::with(['order', 'user', 'deliveryAllocation.delivery'])->latest();
+        $query = Payment::with(['order', 'user', 'deliveryAllocation.delivery', 'creator'])->latest();
 
         if ($user->role === 'staff') {
             $stateCustomerIds = User::where('role', 'customer')
@@ -217,6 +217,7 @@ class PaymentController extends Controller
             'notes'                  => $request->input('notes'),
             'reason'                 => $request->input('reason'),
             'status'                 => 'pending',
+            'created_by'             => $user->id,
         ]);
 
         $adminUser = User::whereIn('role', ['admin', 'super_admin'])->first();

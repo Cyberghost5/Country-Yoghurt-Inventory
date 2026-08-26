@@ -80,6 +80,7 @@
                   <th>Payment No.</th>
                   @if ($user->isAdmin())
                     <th>Submitted By</th>
+                    <th>Posted By</th>
                   @endif
                   <th>Reference</th>
                   <th>Amount (₦)</th>
@@ -97,6 +98,14 @@
                       <td>
                         <span class="ord-placer">{{ $payment->user->name ?? '-' }}</span>
                         <small class="ord-role">{{ ucfirst($payment->user->role ?? '') }}</small>
+                      </td>
+                      <td>
+                        @if ($payment->creator)
+                          <span class="ord-placer">{{ $payment->creator->name }}</span>
+                          <small class="ord-role">{{ ucfirst($payment->creator->role) }}</small>
+                        @else
+                          <span class="ord-placer" style="color: var(--text-soft);">-</span>
+                        @endif
                       </td>
                     @endif
                     <td>

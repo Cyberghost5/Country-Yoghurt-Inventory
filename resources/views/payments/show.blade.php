@@ -104,6 +104,13 @@
             <p class="ord-meta-value">{{ $payment->user->name ?? '-' }}</p>
             <small class="ord-meta-sub">{{ ucfirst($payment->user->role ?? '') }}</small>
           </div>
+          @if ($payment->creator)
+            <div class="ord-meta-card">
+              <p class="ord-meta-label">Posted By</p>
+              <p class="ord-meta-value">{{ $payment->creator->name }}</p>
+              <small class="ord-meta-sub">{{ ucfirst($payment->creator->role) }}</small>
+            </div>
+          @endif
           @if ($payment->reference)
             <div class="ord-meta-card">
               <p class="ord-meta-label">Reference</p>

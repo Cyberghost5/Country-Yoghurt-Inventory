@@ -22,6 +22,7 @@ class Payment extends Model
         'reviewed_by',
         'reviewed_at',
         'rejection_reason',
+        'created_by',
     ];
 
     protected $casts = [
@@ -50,6 +51,11 @@ class Payment extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /* ── Computed ── */
